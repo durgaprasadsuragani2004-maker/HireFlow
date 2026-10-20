@@ -1,0 +1,49 @@
+import { z } from 'zod';
+import { ROLES } from '../config/constants';
+
+export const registerSchema = z.object({
+  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+  role: z.enum([ROLES.APPLICANT, ROLES.RECRUITER], {
+    errorMap: () => ({ message: 'Role must be either APPLICANT or RECRUITER' }),
+  }),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional(),
+  companyName: z.string().min(2, 'Company name is required for recruiters').optional(),
+  title: z.string().optional(),
+}).refine(
+  (data) => {
+    if (data.role === ROLES.APPLICANT && !data.fullName) {
+      return false;
+    }
+    if (data.role === ROLES.RECRUITER && !data.companyName) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Required fields missing for specified role (fullName for applicant, companyName for recruiter)',
+    path: ['role'],
+  }
+);
+
+export const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+
+export const updateMeSchema = z.object({
+  fullName: z.string().min(2).optional(),
+  phone: z.string().optional(),
+  location: z.string().optional(),
+  headline: z.string().optional(),
+  summary: z.string().optional(),
+  linkedinUrl: z.string().url().optional().or(z.literal('')),
+  githubUrl: z.string().url().optional().or(z.literal('')),
+  portfolioUrl: z.string().url().optional().or(z.literal('')),
+  title: z.string().optional(),
+  department: z.string().optional(),
+});

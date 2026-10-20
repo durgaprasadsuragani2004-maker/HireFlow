@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.env
+!.env.example
+*.db
+dev.db
+postgres-data/
+prisma/postgres-data/
+uploads/*
+!uploads/.gitkeep
+*.log

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hireflow_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      POSTGRES_DB: ${POSTGRES_DB:-hireflow}
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: hireflow_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@postgres:5432/${POSTGRES_DB:-hireflow}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-super-secret-hireflow-jwt-access-key-2026-production-grade}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-super-secret-hireflow-jwt-refresh-key-2026-production-grade}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      SERVER_URL: ${SERVER_URL:-http://localhost:5001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-hireflow-resumes}
+    ports:
+      - '5001:5001'
+    volumes:
+      - server_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: hireflow_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5001/api}
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:
+  server_uploads:
