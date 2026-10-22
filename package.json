@@ -10,5 +10,9 @@
     "server:dev": "npm run dev --prefix server",
     "client:dev": "npm run dev --prefix client",
     "build": "npm run build --prefix server && npm run build --prefix client"
+  },
+  "dependencies": {
+    "brew": "^0.0.8",
+    "gh": "^2.8.9"
   }
 }
