@@ -72,6 +72,51 @@ export class AuthController {
     }
   }
 
+  async adminGetUserById(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await authService.adminGetUserById(String(req.params.id));
+      sendSuccess(res, user);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminCreateUser(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const newUser = await authService.adminCreateUser(req.body, req.user!.id);
+      sendSuccess(res, newUser, 'User created successfully', 201);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminUpdateUser(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await authService.adminUpdateUser(
+        String(req.params.id),
+        req.body,
+        req.user!.id
+      );
+      sendSuccess(res, updated, 'User updated successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async adminDeleteUser(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const force = req.query.force === 'true';
+      const result = await authService.adminDeleteUser(
+        String(req.params.id),
+        req.user!.id,
+        force
+      );
+      sendSuccess(res, result, result.message);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async adminUpdateUserStatus(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
       const updated = await authService.adminUpdateUserStatus(

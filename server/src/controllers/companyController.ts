@@ -33,6 +33,15 @@ export class CompanyController {
     }
   }
 
+  async createCompany(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const created = await companyService.createCompany(req.body, req.user!);
+      sendSuccess(res, created, 'Company created successfully', 201);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async updateCompany(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
       const companyId = req.params.id ? String(req.params.id) : req.user?.recruiterProfile?.companyId;
@@ -42,6 +51,30 @@ export class CompanyController {
       }
       const updated = await companyService.updateCompany(companyId, req.body, req.user!);
       sendSuccess(res, updated, 'Company details updated successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteCompany(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = String(req.params.id);
+      const result = await companyService.deleteCompany(companyId, req.user!);
+      sendSuccess(res, result, 'Company deleted successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getCompanyAnalytics(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const companyId = req.params.id ? String(req.params.id) : req.user?.recruiterProfile?.companyId;
+      if (!companyId) {
+        sendSuccess(res, null, 'Company ID is required to fetch analytics', 400);
+        return;
+      }
+      const analytics = await companyService.getCompanyAnalytics(companyId, req.user!);
+      sendSuccess(res, analytics);
     } catch (err) {
       next(err);
     }

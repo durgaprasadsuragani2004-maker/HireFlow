@@ -27,20 +27,11 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
-  logout: () => void;
-  switchDemoUser: (demoKey: 'admin' | 'recruiter_technova' | 'recruiter_quantum' | 'applicant_alex' | 'applicant_elena') => Promise<void>;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const DEMO_ACCOUNTS = {
-  admin: { email: 'admin@hireflow.dev', password: 'Admin@123456', label: 'Super Admin' },
-  recruiter_technova: { email: 'sarah.recruiter@technova.com', password: 'Recruiter@123456', label: 'Recruiter (TechNova)' },
-  recruiter_quantum: { email: 'marcus.recruiter@quantum.ai', password: 'Recruiter@123456', label: 'Recruiter (QuantumLabs)' },
-  applicant_alex: { email: 'alex.dev@gmail.com', password: 'Applicant@123456', label: 'Applicant (Alex - Full Stack)' },
-  applicant_elena: { email: 'elena.frontend@gmail.com', password: 'Applicant@123456', label: 'Applicant (Elena - Frontend)' },
-};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -61,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch {
       localStorage.removeItem('hireflow_token');
+      localStorage.removeItem('hireflow_refresh_token');
       localStorage.removeItem('hireflow_user');
       setUser(null);
     } finally {
@@ -70,6 +62,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     refreshUser();
+
+    // Revalidate session when user navigates using browser back/forward (BFCache)
+    const handlePageShow = (e: PageTransitionEvent) => {
+      const token = localStorage.getItem('hireflow_token');
+      if (e.persisted || !token) {
+        refreshUser();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
   }, [refreshUser]);
 
   const login = async (email: string, password: string) => {
@@ -108,19 +111,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('hireflow_token');
-    localStorage.removeItem('hireflow_refresh_token');
-    setUser(null);
-    showToast('You have been logged out', 'info');
-  };
-
-  const switchDemoUser = async (
-    demoKey: 'admin' | 'recruiter_technova' | 'recruiter_quantum' | 'applicant_alex' | 'applicant_elena'
-  ) => {
-    const demo = DEMO_ACCOUNTS[demoKey];
-    if (demo) {
-      await login(demo.email, demo.password);
+  const logout = async () => {
+    try {
+      try {
+        await api.post('/auth/logout');
+      } catch {
+        // Continue client logout even if network fails
+      }
+      localStorage.removeItem('hireflow_token');
+      localStorage.removeItem('hireflow_refresh_token');
+      localStorage.removeItem('hireflow_user');
+      sessionStorage.clear();
+      setUser(null);
+      showToast('You have been logged out', 'info');
+      // Hard redirect to home page to reset all in-memory React query/state caches
+      window.location.href = '/';
+    } catch {
+      showToast('Error during logout', 'error');
     }
   };
 
@@ -132,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
-        switchDemoUser,
         refreshUser,
       }}
     >

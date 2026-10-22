@@ -147,10 +147,31 @@ export class InterviewService {
     return interview;
   }
 
-  async getInterviews(currentUser: AuthUser, params: { status?: string; date?: string }) {
+  async getInterviews(
+    currentUser: AuthUser,
+    params: {
+      status?: string;
+      date?: string;
+      startDate?: string;
+      endDate?: string;
+      interviewType?: string;
+      search?: string;
+      sortBy?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
     const where: any = {};
     if (params.status) where.status = params.status;
-    if (params.date) where.date = params.date;
+    if (params.interviewType) where.interviewType = params.interviewType;
+
+    if (params.date) {
+      where.date = params.date;
+    } else if (params.startDate || params.endDate) {
+      where.date = {};
+      if (params.startDate) where.date.gte = params.startDate;
+      if (params.endDate) where.date.lte = params.endDate;
+    }
 
     if (currentUser.role === ROLES.APPLICANT) {
       where.application = {
@@ -162,21 +183,70 @@ export class InterviewService {
       };
     }
 
-    return prisma.interview.findMany({
-      where,
-      include: {
-        application: {
-          include: {
-            job: {
-              select: { id: true, title: true, company: { select: { id: true, name: true } } },
-            },
-            applicant: {
-              select: { id: true, fullName: true, headline: true },
+    if (params.search) {
+      const search = params.search;
+      const searchConditions: any[] = [
+        { interviewerName: { contains: search } },
+        { interviewerEmail: { contains: search } },
+        { application: { job: { title: { contains: search } } } },
+        { application: { applicant: { fullName: { contains: search } } } },
+      ];
+      if (currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.RECRUITER) {
+        searchConditions.push({
+          application: { applicant: { user: { email: { contains: search } } } },
+        });
+      }
+      where.OR = searchConditions;
+    }
+
+    let orderBy: any = [{ date: 'asc' }, { startTime: 'asc' }];
+    if (params.sortBy === 'latest' || params.sortBy === 'desc') {
+      orderBy = [{ date: 'desc' }, { startTime: 'desc' }];
+    } else if (params.sortBy === 'upcoming' || params.sortBy === 'asc') {
+      orderBy = [{ date: 'asc' }, { startTime: 'asc' }];
+    }
+
+    const include = {
+      application: {
+        include: {
+          job: {
+            select: { id: true, title: true, company: { select: { id: true, name: true } } },
+          },
+          applicant: {
+            select: {
+              id: true,
+              fullName: true,
+              headline: true,
+              user: { select: { email: true } },
             },
           },
         },
       },
-      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    };
+
+    if (params.page !== undefined || params.limit !== undefined) {
+      const page = Math.max(1, params.page || 1);
+      const limit = Math.min(100, Math.max(1, params.limit || 10));
+      const skip = (page - 1) * limit;
+
+      const [interviews, total] = await Promise.all([
+        prisma.interview.findMany({
+          where,
+          include,
+          orderBy,
+          skip,
+          take: limit,
+        }),
+        prisma.interview.count({ where }),
+      ]);
+
+      return { interviews, total, page, limit };
+    }
+
+    return prisma.interview.findMany({
+      where,
+      include,
+      orderBy,
     });
   }
 

@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '../../../lib/api';
+import { api, downloadResumeFile, getAuthenticatedResumeUrl } from '../../../lib/api';
+import { useToast } from '../../../providers/ToastContext';
 import { Badge } from '../../../components/ui/Badge';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { getStageColor, formatDate } from '../../../lib/utils';
+import { AuthGuard } from '../../../components/layout/AuthGuard';
 import {
   ArrowLeft,
   Mail,
@@ -24,9 +26,11 @@ import {
 export default function CandidateDetailPage() {
   const params = useParams();
   const candidateId = params?.id as string;
+  const { showToast } = useToast();
 
   const [candidate, setCandidate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingResume, setDownloadingResume] = useState(false);
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -45,29 +49,24 @@ export default function CandidateDetailPage() {
     if (candidateId) fetchCandidate();
   }, [candidateId]);
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-48 rounded-3xl" />
-        <Skeleton className="h-64 rounded-3xl" />
-      </div>
-    );
-  }
-
-  if (!candidate) {
-    return (
-      <div className="max-w-xl mx-auto text-center py-16">
-        <h2 className="text-xl font-bold">Candidate Not Found</h2>
-        <Link href="/applicants" className="text-xs text-blue-600 underline mt-2 inline-block">
-          Back to Candidates
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6 py-2">
+    <AuthGuard allowedRoles={['SUPER_ADMIN', 'RECRUITER']}>
+      {loading ? (
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-48 rounded-3xl" />
+          <Skeleton className="h-64 rounded-3xl" />
+        </div>
+      ) : !candidate ? (
+        <div className="max-w-xl mx-auto text-center py-16">
+          <h2 className="text-xl font-bold">Candidate Not Found</h2>
+          <Link href="/applicants" className="text-xs text-blue-600 underline mt-2 inline-block">
+            Back to Candidates
+          </Link>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto space-y-6 py-2">
+
       <Link
         href="/applicants"
         className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -113,15 +112,39 @@ export default function CandidateDetailPage() {
 
         {/* Resume Download Action */}
         {candidate.resumeUrl && (
-          <a
-            href={candidate.resumeUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download Resume</span>
-          </a>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={async () => {
+                setDownloadingResume(true);
+                try {
+                  await downloadResumeFile(candidate.resumeUrl, candidate.fullName);
+                  showToast('Resume downloaded successfully', 'success');
+                } catch (err: any) {
+                  showToast(
+                    err.response?.data?.message || err.message || 'Failed to download resume',
+                    'error'
+                  );
+                } finally {
+                  setDownloadingResume(false);
+                }
+              }}
+              disabled={downloadingResume}
+              className="px-4 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all flex items-center gap-2 disabled:opacity-60"
+            >
+              <Download className="w-4 h-4" />
+              <span>{downloadingResume ? 'Downloading...' : 'Download Resume'}</span>
+            </button>
+            <a
+              href={getAuthenticatedResumeUrl(candidate.resumeUrl)}
+              target="_blank"
+              rel="noreferrer"
+              className="px-3 py-2.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all"
+              title="Open in new browser tab"
+            >
+              Open in Tab
+            </a>
+          </div>
         )}
       </div>
 
@@ -214,5 +237,7 @@ export default function CandidateDetailPage() {
         </div>
       )}
     </div>
-  );
+  )}
+</AuthGuard>
+);
 }

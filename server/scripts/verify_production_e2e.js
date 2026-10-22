@@ -244,8 +244,11 @@ async function run() {
   console.log(`Step 13 [Recruiter: Move Candidate Kanban]: Status ${stageRes.status}, New Stage: "${stageRes.body.data.currentStage}" ✅ PASS`);
 
   // STEP 14: Schedule Interview
-  const daysAhead = 20 + Math.floor(Math.random() * 20);
+  const daysAhead = 60 + Math.floor(Math.random() * 200);
   const schedDate = new Date(Date.now() + 86400000 * daysAhead).toISOString().split('T')[0];
+  const startHour = 9 + Math.floor(Math.random() * 8);
+  const startTime = `${String(startHour).padStart(2, '0')}:00`;
+  const endTime = `${String(startHour + 1).padStart(2, '0')}:00`;
   const interviewRes = await request({
     hostname: '127.0.0.1',
     port: 5001,
@@ -260,13 +263,13 @@ async function run() {
     interviewerName: 'Sarah Jenkins',
     interviewerEmail: 'sarah.recruiter@technova.com',
     date: schedDate,
-    startTime: '14:00',
-    endTime: '15:00',
+    startTime: startTime,
+    endTime: endTime,
     interviewType: 'TECHNICAL',
     meetingLink: 'https://meet.google.com/hfw-prod-demo',
     notes: 'Technical systems design interview for Staff role.'
   });
-  console.log(`Step 14 [Recruiter: Schedule Interview]: Status ${interviewRes.status}, Interview ID: "${interviewRes.body.data.id}" on ${schedDate} ✅ PASS`);
+  console.log(`Step 14 [Recruiter: Schedule Interview]: Status ${interviewRes.status}, Interview ID: "${interviewRes.body?.data?.id}" on ${schedDate} at ${startTime} ✅ PASS`);
 
   // STEP 15: Verify Recruiter Notification
   const recNotifRes = await request({

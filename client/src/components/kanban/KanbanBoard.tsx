@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -37,6 +37,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const [historyModalApp, setHistoryModalApp] = useState<any | null>(null);
   const { showToast } = useToast();
 
+  useEffect(() => {
+    setColumns(initialKanbanData);
+  }, [initialKanbanData]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -60,7 +64,26 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (!over) return;
 
     const applicationId = active.id as string;
-    const targetStage = over.id as string;
+    let targetStage = over.id as string;
+
+    // Resolve targetStage when dropped over another card or column
+    if (!STAGES.includes(targetStage)) {
+      if (over.data.current?.stage && STAGES.includes(over.data.current.stage)) {
+        targetStage = over.data.current.stage;
+      } else {
+        const cleanId = targetStage.replace(/^card-/, '');
+        for (const [stageName, appList] of Object.entries(columns)) {
+          if (appList.some((a) => a.id === cleanId || a.id === targetStage)) {
+            targetStage = stageName;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!STAGES.includes(targetStage)) {
+      return;
+    }
 
     // Find current stage of candidate
     let sourceStage = '';
@@ -78,6 +101,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     if (!sourceStage || !candidateApp || sourceStage === targetStage) {
       return;
     }
+
 
     // Optimistically update frontend columns
     const updatedSource = columns[sourceStage].filter((a) => a.id !== applicationId);

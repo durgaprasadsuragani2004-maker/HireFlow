@@ -19,6 +19,9 @@ import {
   ArrowLeft,
   CheckCircle2,
   Calendar,
+  Home,
+  Edit,
+  XCircle,
 } from 'lucide-react';
 
 export default function JobDetailPage() {
@@ -79,13 +82,34 @@ export default function JobDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 py-2">
-      <Link
-        href="/jobs"
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Back to Job Listings</span>
-      </Link>
+      {/* Breadcrumb Navigation */}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-500">
+        <Link
+          href="/"
+          className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+        >
+          <Home className="w-3.5 h-3.5" />
+          <span>Home</span>
+        </Link>
+        <span className="text-slate-400">/</span>
+        <Link href="/jobs" className="hover:text-blue-600 transition-colors">
+          Career Opportunities
+        </Link>
+        <span className="text-slate-400">/</span>
+        <span className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-xs">
+          {job.title}
+        </span>
+      </nav>
+
+      <div className="flex items-center justify-between">
+        <Link
+          href="/jobs"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Job Listings</span>
+        </Link>
+      </div>
 
       {isExpired && (
         <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl text-xs text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-2">
@@ -133,32 +157,79 @@ export default function JobDetailPage() {
 
         {/* Action Button */}
         <div>
-          {isMyCompany || user?.role === 'SUPER_ADMIN' ? (
-            <Link
-              href={`/applications/kanban/${job.id}`}
-              className="px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all flex items-center gap-2"
-            >
-              <Layers className="w-4 h-4" />
-              <span>Open Kanban Pipeline</span>
-            </Link>
-          ) : job.hasApplied ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Applied ({job.applicationInfo?.currentStage})</span>
+          {user?.role === 'SUPER_ADMIN' || isMyCompany ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/jobs/${job.id}/edit`}
+                className="px-4 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all flex items-center gap-1.5"
+              >
+                <Edit className="w-4 h-4" />
+                <span>Edit Job</span>
+              </Link>
+              <Link
+                href={`/applications/kanban/${job.id}`}
+                className="px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all flex items-center gap-2"
+              >
+                <Layers className="w-4 h-4" />
+                <span>Open Kanban Pipeline</span>
+              </Link>
             </div>
-          ) : isExpired ? (
+          ) : user?.role === 'RECRUITER' ? (
+            <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold">
+              Recruiter View (Other Company)
+            </div>
+          ) : user?.role === 'APPLICANT' ? (
+            job.applicationInfo?.currentStage === 'REJECTED' ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold">
+                  <XCircle className="w-4 h-4 text-rose-500" />
+                  <span>Previous Application Rejected</span>
+                </div>
+                {isExpired || job.status !== 'PUBLISHED' ? (
+                  <div className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl text-xs font-bold">
+                    Applications Closed
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setApplyModalOpen(true)}
+                    variant="primary"
+                    size="md"
+                  >
+                    Reapply for this Role
+                  </Button>
+                )}
+              </div>
+            ) : job.hasApplied ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Applied ({job.applicationInfo?.currentStage || 'Submitted'})</span>
+              </div>
+            ) : isExpired || job.status !== 'PUBLISHED' ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold">
+                <Clock className="w-4 h-4 text-rose-500" />
+                <span>Applications Closed</span>
+              </div>
+            ) : (
+              <Button
+                onClick={() => setApplyModalOpen(true)}
+                variant="primary"
+                size="lg"
+              >
+                Apply for this Role
+              </Button>
+            )
+          ) : isExpired || job.status !== 'PUBLISHED' ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold">
               <Clock className="w-4 h-4 text-rose-500" />
               <span>Applications Closed</span>
             </div>
           ) : (
-            <Button
-              onClick={() => setApplyModalOpen(true)}
-              variant="primary"
-              size="lg"
+            <Link
+              href="/login"
+              className="inline-flex items-center px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all"
             >
-              Apply for this Role
-            </Button>
+              Sign In to Apply
+            </Link>
           )}
         </div>
       </div>

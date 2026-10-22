@@ -1,7 +1,5 @@
-'use client';
-
 import React from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Star, Calendar, History, Eye, GripVertical } from 'lucide-react';
 import { Badge } from '../ui/Badge';
@@ -19,14 +17,31 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
   onViewHistory,
   onScheduleInterview,
 }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragRef,
+    transform,
+    isDragging,
+  } = useDraggable({
     id: application.id,
-    data: { application },
+    data: { application, stage: application.currentStage },
   });
 
-  const style = {
+  const { setNodeRef: setDropRef } = useDroppable({
+    id: `card-${application.id}`,
+    data: { stage: application.currentStage, applicationId: application.id },
+  });
+
+  const setCardRef = (node: HTMLDivElement | null) => {
+    setDragRef(node);
+    setDropRef(node);
+  };
+
+  const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.35 : 1,
+    touchAction: 'none',
   };
 
   const applicant = application.applicant;
@@ -35,23 +50,34 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setCardRef}
       style={style}
-      className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm hover:shadow-md transition-all cursor-default select-none mb-3"
+      className={`group relative bg-white dark:bg-slate-900 border rounded-xl p-3.5 shadow-sm hover:shadow-md transition-shadow select-none mb-3 ${
+        isDragging
+          ? 'border-blue-500 shadow-xl ring-2 ring-blue-500/20'
+          : 'border-slate-200 dark:border-slate-800'
+      }`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div
+        {...attributes}
+        {...listeners}
+        className="flex items-start justify-between gap-2 cursor-grab active:cursor-grabbing pb-1"
+      >
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              title="Drag to change stage"
+              className="p-1 -ml-1 text-slate-400 group-hover:text-blue-600 transition-colors"
+              title="Drag candidate to change recruitment stage"
             >
               <GripVertical className="w-4 h-4" />
             </span>
             <button
-              onClick={() => onViewDetails(application)}
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails(application);
+              }}
               className="font-semibold text-sm text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate text-left"
             >
               {applicant?.fullName || 'Candidate'}
@@ -61,6 +87,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
             {applicant?.headline || applicant?.user?.email || 'Applicant'}
           </p>
         </div>
+
 
         {rating > 0 && (
           <div className="flex items-center gap-0.5 text-amber-500 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded-md text-[11px] font-semibold border border-amber-200 dark:border-amber-800">
@@ -105,7 +132,12 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         <div className="flex items-center gap-1">
           {onScheduleInterview && (
             <button
-              onClick={() => onScheduleInterview(application)}
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onScheduleInterview(application);
+              }}
               title="Schedule Interview"
               className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-indigo-600"
             >
@@ -114,7 +146,12 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           )}
 
           <button
-            onClick={() => onViewHistory(application)}
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewHistory(application);
+            }}
             title="View Stage History Audit Trail"
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-blue-600"
           >
@@ -122,7 +159,12 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           </button>
 
           <button
-            onClick={() => onViewDetails(application)}
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails(application);
+            }}
             title="View Application Details"
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white"
           >

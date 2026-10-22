@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth, DEMO_ACCOUNTS } from '../../../providers/AuthContext';
+import { useAuth } from '../../../providers/AuthContext';
 import { Button } from '../../../components/ui/Button';
-import { Briefcase, Lock, Mail, Sparkles, ArrowRight } from 'lucide-react';
+import { Briefcase, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,13 +27,16 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoPreset = (cred: { email: string; password: string }) => {
-    setEmail(cred.email);
-    setPassword(cred.password);
-  };
-
   return (
-    <div className="max-w-md mx-auto py-10">
+    <div className="max-w-md mx-auto py-10 space-y-4">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Home</span>
+      </Link>
+
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl">
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/30">
@@ -41,44 +44,6 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome Back</h1>
           <p className="text-xs text-slate-500 mt-1">Sign in to your HireFlow ATS workspace</p>
-        </div>
-
-        {/* Demo Credentials Quick-Select */}
-        <div className="mb-6 p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/80 rounded-2xl">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-900 dark:text-blue-300 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Click to fill demo account:</span>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-            <button
-              type="button"
-              onClick={() => handleDemoPreset(DEMO_ACCOUNTS.admin)}
-              className="p-1.5 bg-white dark:bg-slate-800 hover:bg-blue-100 rounded-lg text-slate-700 dark:text-slate-300 font-medium text-left truncate transition-colors shadow-xs"
-            >
-              👑 Super Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoPreset(DEMO_ACCOUNTS.recruiter_technova)}
-              className="p-1.5 bg-white dark:bg-slate-800 hover:bg-blue-100 rounded-lg text-slate-700 dark:text-slate-300 font-medium text-left truncate transition-colors shadow-xs"
-            >
-              💼 Recruiter (TechNova)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoPreset(DEMO_ACCOUNTS.recruiter_quantum)}
-              className="p-1.5 bg-white dark:bg-slate-800 hover:bg-blue-100 rounded-lg text-slate-700 dark:text-slate-300 font-medium text-left truncate transition-colors shadow-xs"
-            >
-              💼 Recruiter (Quantum)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoPreset(DEMO_ACCOUNTS.applicant_alex)}
-              className="p-1.5 bg-white dark:bg-slate-800 hover:bg-blue-100 rounded-lg text-slate-700 dark:text-slate-300 font-medium text-left truncate transition-colors shadow-xs"
-            >
-              👤 Candidate (Alex)
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

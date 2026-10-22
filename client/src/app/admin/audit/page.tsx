@@ -5,6 +5,7 @@ import { api } from '../../../lib/api';
 import { useAuth } from '../../../providers/AuthContext';
 import { Badge } from '../../../components/ui/Badge';
 import { Skeleton } from '../../../components/ui/Skeleton';
+import { AuthGuard } from '../../../components/layout/AuthGuard';
 import { Activity, ShieldAlert, Clock, User, Filter } from 'lucide-react';
 
 export default function AdminAuditPage() {
@@ -38,18 +39,10 @@ export default function AdminAuditPage() {
     }
   }, [user, actionFilter]);
 
-  if (user?.role !== 'SUPER_ADMIN') {
-    return (
-      <div className="p-8 text-center bg-rose-50 border border-rose-200 rounded-2xl text-rose-800">
-        <ShieldAlert className="w-8 h-8 mx-auto mb-2" />
-        <h2 className="text-base font-bold">Access Restricted</h2>
-        <p className="text-xs mt-1">Super Administrator privileges required.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 max-w-6xl mx-auto py-2">
+    <AuthGuard allowedRoles={['SUPER_ADMIN']}>
+      <div className="space-y-6 max-w-6xl mx-auto py-2">
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Security & Audit Trail</h1>
@@ -127,5 +120,6 @@ export default function AdminAuditPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

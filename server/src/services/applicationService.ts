@@ -53,7 +53,7 @@ export class ApplicationService {
       throw new AppError('The application deadline for this position has passed', 400);
     }
 
-    // Check for duplicate application
+    // Check for existing application
     const existing = await prisma.application.findUnique({
       where: {
         jobId_applicantId: {
@@ -64,67 +64,146 @@ export class ApplicationService {
     });
 
     if (existing) {
-      throw new AppError('You have already submitted an application for this position', 409);
+      if (existing.currentStage !== APPLICATION_STAGES.REJECTED) {
+        throw new AppError(
+          `You have already submitted an application for this position (Current status: ${existing.currentStage})`,
+          409
+        );
+      }
+
+      // Reapplication after rejection: reset application to APPLIED with auditable stage history
+      try {
+        const application = await prisma.$transaction(async (tx) => {
+          const updated = await tx.application.update({
+            where: { id: existing.id },
+            data: {
+              currentStage: APPLICATION_STAGES.APPLIED,
+              coverLetter: data.coverLetter || existing.coverLetter,
+              appliedAt: new Date(),
+              rating: null,
+            },
+            include: {
+              job: {
+                include: { company: true },
+              },
+              applicant: true,
+            },
+          });
+
+          await tx.applicationStageHistory.create({
+            data: {
+              applicationId: existing.id,
+              previousStage: APPLICATION_STAGES.REJECTED,
+              newStage: APPLICATION_STAGES.APPLIED,
+              changedById: applicantUser.id,
+              reason: 'Candidate re-applied after prior rejection',
+            },
+          });
+
+          return updated;
+        });
+
+        // Notify applicant
+        await notificationService.notify({
+          userId: applicantUser.id,
+          type: NOTIFICATION_TYPES.APPLICATION_STATUS,
+          title: 'Application Received!',
+          message: `Your re-application for "${job.title}" at ${job.company.name} has been received.`,
+          metadata: { applicationId: application.id, jobId: job.id },
+        });
+
+        // Notify recruiter
+        if (job.recruiter?.user) {
+          await notificationService.notify({
+            userId: job.recruiter.user.id,
+            type: NOTIFICATION_TYPES.NEW_APPLICATION,
+            title: 'Candidate Re-Applied',
+            message: `${applicantProfile.fullName} has re-applied for "${job.title}".`,
+            metadata: { applicationId: application.id, jobId: job.id },
+          });
+        }
+
+        await auditService.log({
+          actorId: applicantUser.id,
+          action: AUDIT_ACTIONS.APPLICATION_CREATE,
+          entity: 'Application',
+          entityId: application.id,
+          metadata: { jobId, jobTitle: job.title, reapplication: true },
+        });
+
+        return application;
+      } catch (err: any) {
+        if (err.code === 'P2002') {
+          throw new AppError('You have already submitted an application for this position', 409);
+        }
+        throw err;
+      }
     }
 
-    const application = await prisma.$transaction(async (tx) => {
-      const app = await tx.application.create({
-        data: {
-          jobId,
-          applicantId: applicantProfile!.id,
-          currentStage: APPLICATION_STAGES.APPLIED,
-          coverLetter: data.coverLetter || null,
-        },
-        include: {
-          job: {
-            include: { company: true },
+    try {
+      const application = await prisma.$transaction(async (tx) => {
+        const app = await tx.application.create({
+          data: {
+            jobId,
+            applicantId: applicantProfile!.id,
+            currentStage: APPLICATION_STAGES.APPLIED,
+            coverLetter: data.coverLetter || null,
           },
-          applicant: true,
-        },
+          include: {
+            job: {
+              include: { company: true },
+            },
+            applicant: true,
+          },
+        });
+
+        await tx.applicationStageHistory.create({
+          data: {
+            applicationId: app.id,
+            previousStage: null,
+            newStage: APPLICATION_STAGES.APPLIED,
+            changedById: applicantUser.id,
+            reason: 'Application submitted by candidate',
+          },
+        });
+
+        return app;
       });
 
-      await tx.applicationStageHistory.create({
-        data: {
-          applicationId: app.id,
-          previousStage: null,
-          newStage: APPLICATION_STAGES.APPLIED,
-          changedById: applicantUser.id,
-          reason: 'Application submitted by candidate',
-        },
-      });
-
-      return app;
-    });
-
-    // Notify applicant
-    await notificationService.notify({
-      userId: applicantUser.id,
-      type: NOTIFICATION_TYPES.APPLICATION_STATUS,
-      title: 'Application Received!',
-      message: `Your application for "${job.title}" at ${job.company.name} has been received.`,
-      metadata: { applicationId: application.id, jobId: job.id },
-    });
-
-    // Notify recruiter
-    if (job.recruiter?.user) {
+      // Notify applicant
       await notificationService.notify({
-        userId: job.recruiter.user.id,
-        type: NOTIFICATION_TYPES.NEW_APPLICATION,
-        title: 'New Candidate Applied',
-        message: `${applicantProfile.fullName} applied for ${job.title}.`,
+        userId: applicantUser.id,
+        type: NOTIFICATION_TYPES.APPLICATION_STATUS,
+        title: 'Application Received!',
+        message: `Your application for "${job.title}" at ${job.company.name} has been received.`,
         metadata: { applicationId: application.id, jobId: job.id },
       });
+
+      // Notify recruiter
+      if (job.recruiter?.user) {
+        await notificationService.notify({
+          userId: job.recruiter.user.id,
+          type: NOTIFICATION_TYPES.NEW_APPLICATION,
+          title: 'New Candidate Applied',
+          message: `${applicantProfile.fullName} applied for ${job.title}.`,
+          metadata: { applicationId: application.id, jobId: job.id },
+        });
+      }
+
+      await auditService.log({
+        actorId: applicantUser.id,
+        action: AUDIT_ACTIONS.APPLICATION_CREATE,
+        entity: 'Application',
+        entityId: application.id,
+        metadata: { jobId, jobTitle: job.title },
+      });
+
+      return application;
+    } catch (err: any) {
+      if (err.code === 'P2002') {
+        throw new AppError('You have already submitted an application for this position', 409);
+      }
     }
-
-    await auditService.log({
-      actorId: applicantUser.id,
-      action: AUDIT_ACTIONS.APPLICATION_CREATE,
-      entity: 'Application',
-      entityId: application.id,
-      metadata: { jobId, jobTitle: job.title },
-    });
-
-    return application;
   }
 
   async changeStage(

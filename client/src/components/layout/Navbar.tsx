@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth, DEMO_ACCOUNTS } from '../../providers/AuthContext';
+import { useAuth } from '../../providers/AuthContext';
 import { api, DOCS_URL } from '../../lib/api';
 import { Badge } from '../ui/Badge';
 import {
@@ -14,7 +14,6 @@ import {
   User,
   CheckCheck,
   Building,
-  Sparkles,
   Menu,
   X,
   LayoutDashboard,
@@ -30,9 +29,8 @@ import {
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
-  const { user, logout, switchDemoUser } = useAuth();
+  const { user, logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -135,47 +133,6 @@ export const Navbar: React.FC = () => {
 
         {/* Right side controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Demo Role Switcher */}
-          <div className="relative">
-            <button
-              onClick={() => setDemoMenuOpen(!demoMenuOpen)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="hidden sm:inline">Switch Demo Role</span>
-              <span className="sm:hidden">Demo</span>
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-
-            {demoMenuOpen && (
-              <div
-                className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95"
-                onMouseLeave={() => setDemoMenuOpen(false)}
-              >
-                <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Instant Role Impersonation
-                </div>
-                {Object.entries(DEMO_ACCOUNTS).map(([key, demo]) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      switchDemoUser(key as any);
-                      setDemoMenuOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex flex-col transition-colors"
-                  >
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {demo.label}
-                    </span>
-                    <span className="text-[11px] text-slate-500 truncate">
-                      {demo.email}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {user ? (
             <>
               {/* Notification Popover */}

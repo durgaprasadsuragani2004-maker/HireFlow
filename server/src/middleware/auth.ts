@@ -11,13 +11,18 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    let token: string | undefined;
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query.token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    }
+
+    if (!token) {
       sendError(res, 'Authentication token is required', 401);
       return;
     }
-
-    const token = authHeader.split(' ')[1];
     let payload;
     try {
       payload = verifyAccessToken(token);
@@ -113,9 +118,14 @@ export const optionalAuth = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    let token: string | undefined;
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
+      token = authHeader.split(' ')[1];
+    } else if (req.query.token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    }
+    if (token) {
       const payload = verifyAccessToken(token);
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },

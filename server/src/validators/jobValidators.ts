@@ -21,11 +21,13 @@ const jobBaseSchema = z.object({
     EXPERIENCE_LEVELS.LEAD,
     EXPERIENCE_LEVELS.EXECUTIVE,
   ]),
-  salaryMin: z.number().int().nonnegative().optional(),
-  salaryMax: z.number().int().nonnegative().optional(),
+  salaryMin: z.coerce.number().int().nonnegative().optional().nullable(),
+  salaryMax: z.coerce.number().int().nonnegative().optional().nullable(),
   salaryCurrency: z.string().default('USD'),
-  deadline: z.string().optional(),
+  deadline: z.string().optional().nullable(),
   status: z.enum([JOB_STATUS.DRAFT, JOB_STATUS.PUBLISHED, JOB_STATUS.ARCHIVED]).optional(),
+  companyId: z.string().optional(),
+  recruiterId: z.string().optional(),
 });
 
 export const createJobSchema = jobBaseSchema.refine(
@@ -41,7 +43,24 @@ export const createJobSchema = jobBaseSchema.refine(
   }
 );
 
-export const updateJobSchema = jobBaseSchema.partial();
+export const updateJobSchema = jobBaseSchema.partial().refine(
+  (data) => {
+    if (
+      data.salaryMin !== undefined &&
+      data.salaryMin !== null &&
+      data.salaryMax !== undefined &&
+      data.salaryMax !== null &&
+      data.salaryMin > data.salaryMax
+    ) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Minimum salary cannot exceed maximum salary',
+    path: ['salaryMin'],
+  }
+);
 
 export const queryJobsSchema = z.object({
   search: z.string().optional(),

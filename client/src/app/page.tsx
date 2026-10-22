@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { DOCS_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { useAuth, DEMO_ACCOUNTS } from '../providers/AuthContext';
+import { useAuth } from '../providers/AuthContext';
 import {
   Briefcase,
   Layers,
@@ -21,12 +21,8 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, switchDemoUser } = useAuth();
+  const { user } = useAuth();
 
-  const handleQuickLogin = async (key: any) => {
-    await switchDemoUser(key);
-    router.push('/dashboard');
-  };
 
   return (
     <div className="space-y-12 py-4">
@@ -89,43 +85,7 @@ export default function HomePage() {
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-blue-500/10 to-transparent pointer-events-none hidden lg:block" />
       </div>
 
-      {/* 1-Click Interactive Demo Impersonation Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-blue-600" />
-              <span>Instant Demonstration Accounts</span>
-            </h2>
-            <p className="text-xs text-slate-500">
-              Click any profile below to immediately authenticate and test with realistic seeded data:
-            </p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
-          {Object.entries(DEMO_ACCOUNTS).map(([key, demo]) => (
-            <button
-              key={key}
-              onClick={() => handleQuickLogin(key)}
-              className="p-3 text-left border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl bg-slate-50/50 hover:bg-blue-50/50 dark:bg-slate-800/40 dark:hover:bg-blue-950/20 transition-all flex flex-col justify-between group"
-            >
-              <div>
-                <div className="font-semibold text-xs text-slate-900 dark:text-white group-hover:text-blue-600">
-                  {demo.label}
-                </div>
-                <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                  {demo.email}
-                </div>
-              </div>
-              <div className="mt-3 text-[11px] font-semibold text-blue-600 flex items-center gap-1">
-                <span>Login as {demo.label.split(' ')[0]}</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Feature Capabilities Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

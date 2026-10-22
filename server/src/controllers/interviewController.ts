@@ -18,6 +18,13 @@ export class InterviewController {
       const interviews = await interviewService.getInterviews(req.user!, {
         status: req.query.status as string,
         date: req.query.date as string,
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
+        interviewType: req.query.interviewType as string,
+        search: req.query.search as string,
+        sortBy: req.query.sortBy as string,
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
       });
       sendSuccess(res, interviews);
     } catch (err) {

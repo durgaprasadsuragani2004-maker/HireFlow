@@ -34,6 +34,10 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({
       showToast('Please sign in as an applicant to apply', 'info');
       return;
     }
+    if (user.role !== 'APPLICANT') {
+      showToast('Only candidate accounts can submit job applications', 'warning');
+      return;
+    }
     setLoading(true);
     try {
       const res = await api.post(`/applications/jobs/${job.id}/apply`, {

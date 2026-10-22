@@ -19,8 +19,17 @@ import {
   History,
 } from 'lucide-react';
 import { StageHistoryModal } from '../../../components/kanban/StageHistoryModal';
+import { AuthGuard } from '../../../components/layout/AuthGuard';
 
 export default function MyApplicationsPage() {
+  return (
+    <AuthGuard allowedRoles={['APPLICANT']}>
+      <MyApplicationsContent />
+    </AuthGuard>
+  );
+}
+
+function MyApplicationsContent() {
   const { user } = useAuth();
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -37,3 +37,55 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * Downloads a candidate resume securely using the authenticated API client
+ */
+export const downloadResumeFile = async (
+  resumeUrlOrFilename: string,
+  candidateName?: string
+): Promise<void> => {
+  if (!resumeUrlOrFilename) {
+    throw new Error('No resume document attached to this profile');
+  }
+  const filename = resumeUrlOrFilename.split('/').pop()?.split('?')[0];
+  if (!filename) {
+    throw new Error('Invalid resume document filename');
+  }
+
+  const res = await api.get(`/resumes/${filename}`, {
+    responseType: 'blob',
+  });
+
+  const blob = new Blob([res.data], {
+    type: String(res.headers['content-type'] || 'application/pdf'),
+  });
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  const downloadFileName = candidateName
+    ? `${candidateName.replace(/\s+/g, '_')}_Resume.pdf`
+    : filename;
+  link.setAttribute('download', downloadFileName);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 15000);
+};
+
+/**
+ * Generates an authenticated URL for opening a resume in a new tab
+ */
+export const getAuthenticatedResumeUrl = (resumeUrlOrFilename: string): string => {
+  if (!resumeUrlOrFilename) return '';
+  const filename = resumeUrlOrFilename.split('/').pop()?.split('?')[0];
+  if (!filename) return '';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('hireflow_token') : null;
+  const baseUrl = `${API_URL}/resumes/${filename}`;
+  if (token) {
+    return `${baseUrl}?token=${encodeURIComponent(token)}&view=inline`;
+  }
+  return baseUrl;
+};
+

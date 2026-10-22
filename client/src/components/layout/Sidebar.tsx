@@ -78,6 +78,12 @@ export const Sidebar: React.FC = () => {
     },
     // Super Admin System Management
     {
+      name: 'Organizations',
+      href: '/admin/companies',
+      icon: Building2,
+      roles: ['SUPER_ADMIN'],
+    },
+    {
       name: 'User Management',
       href: '/admin/users',
       icon: UserCheck,

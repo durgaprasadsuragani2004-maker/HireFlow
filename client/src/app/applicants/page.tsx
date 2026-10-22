@@ -7,6 +7,7 @@ import { useAuth } from '../../providers/AuthContext';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { AuthGuard } from '../../components/layout/AuthGuard';
 import { Search, MapPin, Mail, ArrowRight, ExternalLink } from 'lucide-react';
 
 export default function CandidatesPoolPage() {
@@ -39,7 +40,9 @@ export default function CandidatesPoolPage() {
   }, [search, skill]);
 
   return (
-    <div className="space-y-6">
+    <AuthGuard allowedRoles={['SUPER_ADMIN', 'RECRUITER']}>
+      <div className="space-y-6">
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Candidate Talent Pool</h1>
         <p className="text-xs text-slate-500 mt-0.5">
@@ -148,5 +151,6 @@ export default function CandidatesPoolPage() {
         </div>
       )}
     </div>
+    </AuthGuard>
   );
 }

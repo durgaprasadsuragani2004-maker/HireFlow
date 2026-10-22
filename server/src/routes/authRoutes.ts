@@ -2,7 +2,14 @@ import { Router } from 'express';
 import { authController } from '../controllers/authController';
 import { authenticate, authorizeRoles } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
-import { registerSchema, loginSchema, refreshTokenSchema, updateMeSchema } from '../validators/authValidators';
+import {
+  registerSchema,
+  loginSchema,
+  refreshTokenSchema,
+  updateMeSchema,
+  adminCreateUserSchema,
+  adminUpdateUserSchema,
+} from '../validators/authValidators';
 import { ROLES } from '../config/constants';
 
 const router = Router();
@@ -17,6 +24,32 @@ router.patch('/me', authenticate, validateBody(updateMeSchema), authController.u
 
 // Admin-only user management
 router.get('/admin/users', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), authController.adminGetUsers);
-router.patch('/admin/users/:id/status', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), authController.adminUpdateUserStatus);
+router.post(
+  '/admin/users',
+  authenticate,
+  authorizeRoles(ROLES.SUPER_ADMIN),
+  validateBody(adminCreateUserSchema),
+  authController.adminCreateUser
+);
+router.get('/admin/users/:id', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), authController.adminGetUserById);
+router.patch(
+  '/admin/users/:id',
+  authenticate,
+  authorizeRoles(ROLES.SUPER_ADMIN),
+  validateBody(adminUpdateUserSchema),
+  authController.adminUpdateUser
+);
+router.patch(
+  '/admin/users/:id/status',
+  authenticate,
+  authorizeRoles(ROLES.SUPER_ADMIN),
+  authController.adminUpdateUserStatus
+);
+router.delete(
+  '/admin/users/:id',
+  authenticate,
+  authorizeRoles(ROLES.SUPER_ADMIN),
+  authController.adminDeleteUser
+);
 
 export default router;

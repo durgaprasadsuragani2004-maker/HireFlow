@@ -323,7 +323,12 @@ export class AuthService {
     if (params.role) where.role = params.role;
     if (params.status) where.status = params.status;
     if (params.search) {
-      where.email = { contains: params.search };
+      where.OR = [
+        { email: { contains: params.search } },
+        { applicantProfile: { fullName: { contains: params.search } } },
+        { recruiterProfile: { title: { contains: params.search } } },
+        { recruiterProfile: { company: { name: { contains: params.search } } } },
+      ];
     }
 
     const [users, total] = await Promise.all([
@@ -336,7 +341,10 @@ export class AuthService {
           status: true,
           createdAt: true,
           recruiterProfile: {
-            include: { company: true },
+            include: {
+              company: true,
+              _count: { select: { jobs: true } },
+            },
           },
           applicantProfile: {
             select: {
@@ -344,6 +352,7 @@ export class AuthService {
               fullName: true,
               headline: true,
               resumeUrl: true,
+              _count: { select: { applications: true } },
             },
           },
         },
@@ -357,9 +366,353 @@ export class AuthService {
     return { users, total, page, limit };
   }
 
+  async adminGetUserById(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        recruiterProfile: {
+          include: {
+            company: true,
+            _count: { select: { jobs: true } },
+          },
+        },
+        applicantProfile: {
+          include: {
+            skills: true,
+            _count: { select: { applications: true } },
+          },
+        },
+        _count: {
+          select: {
+            notifications: true,
+            auditLogs: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    return user;
+  }
+
+  async adminCreateUser(
+    data: {
+      email: string;
+      password: string;
+      role: string;
+      status?: string;
+      fullName?: string;
+      companyName?: string;
+      title?: string;
+    },
+    actorId: string
+  ) {
+    const existing = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existing) {
+      throw new AppError('An account with this email address already exists', 409);
+    }
+
+    const passwordHash = await hashPassword(data.password);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          role: data.role as any,
+          status: (data.status as any) || USER_STATUS.ACTIVE,
+        },
+      });
+
+      if (data.role === ROLES.RECRUITER) {
+        const companyName = data.companyName || 'HireFlow Partner';
+        let company = await tx.company.findUnique({
+          where: { name: companyName },
+        });
+
+        if (!company) {
+          company = await tx.company.create({
+            data: {
+              name: companyName,
+              description: `${companyName} on HireFlow ATS`,
+              contactEmail: data.email,
+            },
+          });
+        }
+
+        await tx.recruiterProfile.create({
+          data: {
+            userId: user.id,
+            companyId: company.id,
+            title: data.title || 'Recruiter',
+          },
+        });
+      } else if (data.role === ROLES.APPLICANT) {
+        await tx.applicantProfile.create({
+          data: {
+            userId: user.id,
+            fullName: data.fullName || 'Candidate',
+          },
+        });
+      }
+
+      return user;
+    });
+
+    await auditService.log({
+      actorId,
+      action: AUDIT_ACTIONS.USER_CREATE,
+      entity: 'User',
+      entityId: result.id,
+      metadata: { email: result.email, role: result.role, status: result.status },
+    });
+
+    return this.adminGetUserById(result.id);
+  }
+
+  async adminUpdateUser(
+    userId: string,
+    data: {
+      email?: string;
+      password?: string;
+      role?: string;
+      status?: string;
+      fullName?: string;
+      companyName?: string;
+      title?: string;
+    },
+    actorId: string
+  ) {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        applicantProfile: true,
+        recruiterProfile: { include: { company: true } },
+      },
+    });
+
+    if (!targetUser) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Protection: Prevent demoting or suspending own Super Admin account
+    if (
+      targetUser.role === ROLES.SUPER_ADMIN &&
+      ((data.role && data.role !== ROLES.SUPER_ADMIN) || data.status === USER_STATUS.SUSPENDED)
+    ) {
+      if (actorId === userId) {
+        throw new AppError('You cannot demote or suspend your own Super Admin account', 400);
+      }
+      const adminCount = await prisma.user.count({
+        where: { role: ROLES.SUPER_ADMIN, status: USER_STATUS.ACTIVE },
+      });
+      if (adminCount <= 1) {
+        throw new AppError('Cannot demote or suspend the last active Super Admin', 400);
+      }
+    }
+
+    // Check email uniqueness if changing email
+    if (data.email && data.email !== targetUser.email) {
+      const emailExists = await prisma.user.findUnique({
+        where: { email: data.email },
+      });
+      if (emailExists) {
+        throw new AppError('Email address is already in use by another user', 409);
+      }
+    }
+
+    const updateData: any = {};
+    if (data.email) updateData.email = data.email;
+    if (data.role) updateData.role = data.role as any;
+    if (data.status) updateData.status = data.status as any;
+    if (data.password) {
+      updateData.passwordHash = await hashPassword(data.password);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+
+      // Update or create profiles if needed
+      const effectiveRole = data.role || targetUser.role;
+
+      if (effectiveRole === ROLES.APPLICANT) {
+        if (targetUser.applicantProfile) {
+          if (data.fullName) {
+            await tx.applicantProfile.update({
+              where: { id: targetUser.applicantProfile.id },
+              data: { fullName: data.fullName },
+            });
+          }
+        } else {
+          await tx.applicantProfile.create({
+            data: {
+              userId,
+              fullName: data.fullName || 'Candidate',
+            },
+          });
+        }
+      } else if (effectiveRole === ROLES.RECRUITER) {
+        if (targetUser.recruiterProfile) {
+          const profileUpdate: any = {};
+          if (data.title) profileUpdate.title = data.title;
+          if (data.companyName) {
+            let company = await tx.company.findUnique({
+              where: { name: data.companyName },
+            });
+            if (!company) {
+              company = await tx.company.create({
+                data: {
+                  name: data.companyName,
+                  description: `${data.companyName} on HireFlow ATS`,
+                  contactEmail: data.email || targetUser.email,
+                },
+              });
+            }
+            profileUpdate.companyId = company.id;
+          }
+          if (Object.keys(profileUpdate).length > 0) {
+            await tx.recruiterProfile.update({
+              where: { id: targetUser.recruiterProfile.id },
+              data: profileUpdate,
+            });
+          }
+        } else {
+          const companyName = data.companyName || 'HireFlow Partner';
+          let company = await tx.company.findUnique({
+            where: { name: companyName },
+          });
+          if (!company) {
+            company = await tx.company.create({
+              data: {
+                name: companyName,
+                description: `${companyName} on HireFlow ATS`,
+                contactEmail: data.email || targetUser.email,
+              },
+            });
+          }
+          await tx.recruiterProfile.create({
+            data: {
+              userId,
+              companyId: company.id,
+              title: data.title || 'Recruiter',
+            },
+          });
+        }
+      }
+    });
+
+    await auditService.log({
+      actorId,
+      action: AUDIT_ACTIONS.USER_UPDATE,
+      entity: 'User',
+      entityId: userId,
+      metadata: { updatedFields: Object.keys(data) },
+    });
+
+    return this.adminGetUserById(userId);
+  }
+
+  async adminDeleteUser(userId: string, actorId: string, force = false) {
+    if (actorId === userId) {
+      throw new AppError('You cannot delete your own Super Admin account', 400);
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        applicantProfile: true,
+        recruiterProfile: true,
+      },
+    });
+
+    if (!targetUser) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (targetUser.role === ROLES.SUPER_ADMIN) {
+      const adminCount = await prisma.user.count({
+        where: { role: ROLES.SUPER_ADMIN },
+      });
+      if (adminCount <= 1) {
+        throw new AppError('Cannot delete the last Super Admin in the system', 400);
+      }
+    }
+
+    // Check for dependent records: applications, posted jobs, scheduled interviews
+    const appCount = targetUser.applicantProfile
+      ? await prisma.application.count({ where: { applicantId: targetUser.applicantProfile.id } })
+      : 0;
+    const jobCount = targetUser.recruiterProfile
+      ? await prisma.job.count({ where: { recruiterId: targetUser.recruiterProfile.id } })
+      : 0;
+    const interviewCount = await prisma.interview.count({
+      where: {
+        OR: [{ interviewerEmail: targetUser.email }, { scheduledById: targetUser.id }],
+      },
+    });
+
+    const hasDependencies = appCount > 0 || jobCount > 0 || interviewCount > 0;
+
+    if (hasDependencies && !force) {
+      throw new AppError(
+        `This user has active dependencies (${appCount} applications, ${jobCount} jobs, ${interviewCount} interviews). To preserve audit trails, you can suspend the account instead, or confirm permanent deletion.`,
+        409
+      );
+    }
+
+    // Perform real deletion
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    await auditService.log({
+      actorId,
+      action: AUDIT_ACTIONS.USER_DELETE,
+      entity: 'User',
+      entityId: userId,
+      metadata: { email: targetUser.email, role: targetUser.role, force },
+    });
+
+    return {
+      deleted: true,
+      deactivated: false,
+      message: 'User account permanently deleted.',
+    };
+  }
+
   async adminUpdateUserStatus(userId: string, status: string, actorId: string) {
     if (![USER_STATUS.ACTIVE, USER_STATUS.SUSPENDED].includes(status as any)) {
       throw new AppError('Invalid user status', 400);
+    }
+
+    if (status === USER_STATUS.SUSPENDED) {
+      if (actorId === userId) {
+        throw new AppError('You cannot suspend your own Super Admin account', 400);
+      }
+      const target = await prisma.user.findUnique({ where: { id: userId } });
+      if (target?.role === ROLES.SUPER_ADMIN) {
+        const activeAdmins = await prisma.user.count({
+          where: { role: ROLES.SUPER_ADMIN, status: USER_STATUS.ACTIVE },
+        });
+        if (activeAdmins <= 1) {
+          throw new AppError('Cannot suspend the last active Super Admin', 400);
+        }
+      }
     }
 
     const updated = await prisma.user.update({
@@ -378,6 +731,7 @@ export class AuthService {
 
     return updated;
   }
+
 }
 
 export const authService = new AuthService();

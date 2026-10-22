@@ -67,8 +67,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       {/* Cards List */}
       <div className="flex-1 overflow-y-auto max-h-[calc(100vh-250px)] pr-1">
         {applications.length === 0 ? (
-          <div className="flex items-center justify-center h-28 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-400">
-            Drop candidate here
+          <div className="flex flex-col items-center justify-center h-32 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-400 p-3 text-center">
+            <span className="font-medium text-slate-500 dark:text-slate-400">No applications in this stage</span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Drag candidates here to advance</span>
           </div>
         ) : (
           applications.map((app) => (

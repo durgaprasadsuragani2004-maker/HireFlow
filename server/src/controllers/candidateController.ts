@@ -1,3 +1,4 @@
+import path from 'path';
 import { Response, NextFunction } from 'express';
 import { candidateService } from '../services/candidateService';
 import { sendSuccess, sendPaginated } from '../utils/response';
@@ -67,7 +68,14 @@ export class CandidateController {
         return;
       }
       if (filePath) {
-        res.download(filePath, originalName);
+        const absolutePath = path.resolve(filePath);
+        if (req.query.view === 'inline' || req.query.disposition === 'inline') {
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `inline; filename="${originalName}"`);
+          res.sendFile(absolutePath);
+          return;
+        }
+        res.download(absolutePath, originalName);
         return;
       }
       sendSuccess(res, null, 'Resume record verified', 200);

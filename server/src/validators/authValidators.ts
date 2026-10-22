@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ROLES } from '../config/constants';
+import { ROLES, USER_STATUS } from '../config/constants';
 
 export const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
@@ -47,3 +47,26 @@ export const updateMeSchema = z.object({
   title: z.string().optional(),
   department: z.string().optional(),
 });
+
+export const adminCreateUserSchema = z.object({
+  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.enum([ROLES.SUPER_ADMIN, ROLES.RECRUITER, ROLES.APPLICANT], {
+    errorMap: () => ({ message: 'Role must be SUPER_ADMIN, RECRUITER, or APPLICANT' }),
+  }),
+  status: z.enum([USER_STATUS.ACTIVE, USER_STATUS.SUSPENDED]).optional(),
+  fullName: z.string().optional(),
+  companyName: z.string().optional(),
+  title: z.string().optional(),
+});
+
+export const adminUpdateUserSchema = z.object({
+  email: z.string().email('Please enter a valid email address').toLowerCase().trim().optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  role: z.enum([ROLES.SUPER_ADMIN, ROLES.RECRUITER, ROLES.APPLICANT]).optional(),
+  status: z.enum([USER_STATUS.ACTIVE, USER_STATUS.SUSPENDED]).optional(),
+  fullName: z.string().optional(),
+  companyName: z.string().optional(),
+  title: z.string().optional(),
+});
+
