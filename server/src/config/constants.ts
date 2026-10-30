@@ -2,6 +2,7 @@ export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   RECRUITER: 'RECRUITER',
   APPLICANT: 'APPLICANT',
+  COMPANY: 'COMPANY',
 } as const;
 
 export type RoleType = typeof ROLES[keyof typeof ROLES];

@@ -30,7 +30,7 @@ router.post(
 router.patch(
   '/',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(updateCompanySchema),
   companyController.updateCompany
 );
@@ -38,7 +38,7 @@ router.patch(
 router.patch(
   '/:id',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(updateCompanySchema),
   companyController.updateCompany
 );

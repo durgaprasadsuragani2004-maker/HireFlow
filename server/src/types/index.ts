@@ -6,6 +6,8 @@ export interface AuthUser {
   email: string;
   role: RoleType;
   status: UserStatusType;
+  companyId?: string | null;
+  company?: any;
   recruiterProfile?: {
     id: string;
     companyId: string;

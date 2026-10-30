@@ -1,8 +1,9 @@
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
-import { JOB_STATUS, ROLES, AUDIT_ACTIONS } from '../config/constants';
+import { ROLES, AUDIT_ACTIONS, JOB_STATUS } from '../config/constants';
 import { auditService } from './auditService';
 import { AuthUser } from '../types';
+import { validateJobDeadline, normalizeJobDeadline, isJobExpired } from '../utils/dateUtils';
 
 export class JobService {
   async createJob(
@@ -25,44 +26,82 @@ export class JobService {
       recruiterId?: string;
     }
   ) {
+    // Validate deadline format and calendar date
+    if (data.deadline) {
+      const deadlineValidation = validateJobDeadline(data.deadline);
+      if (!deadlineValidation.valid) {
+        throw new AppError(deadlineValidation.error || 'Application deadline cannot be in the past.', 400);
+      }
+    }
+
     let companyId: string;
     let recruiterId: string;
+    const targetStatus = data.status || JOB_STATUS.PUBLISHED;
 
     if (currentUser.role === ROLES.SUPER_ADMIN) {
-      if (data.companyId) {
-        const company = await prisma.company.findUnique({
-          where: { id: data.companyId },
-          include: { recruiters: true },
-        });
-        if (!company) {
-          throw new AppError('Selected company not found', 404);
-        }
-        companyId = company.id;
+      if (!data.companyId) {
+        throw new AppError('Super Admin must select an organization for this job posting', 400);
+      }
 
-        if (data.recruiterId) {
-          const recruiter = await prisma.recruiterProfile.findUnique({
-            where: { id: data.recruiterId },
-          });
-          if (!recruiter || recruiter.companyId !== company.id) {
-            throw new AppError('The assigned recruiter does not belong to the selected company', 400);
-          }
-          recruiterId = recruiter.id;
-        } else if (company.recruiters && company.recruiters.length > 0) {
-          recruiterId = company.recruiters[0].id;
-        } else {
-          throw new AppError('The selected company has no recruiter assigned. Please assign or create a recruiter for this company first.', 400);
+      const company = await prisma.company.findUnique({
+        where: { id: data.companyId },
+        include: { recruiters: { include: { user: true } } },
+      });
+      if (!company) {
+        throw new AppError('Selected company not found', 404);
+      }
+      companyId = company.id;
+
+      const activeRecruiters = (company.recruiters || []).filter(
+        (r) => r.user && r.user.status === 'ACTIVE'
+      );
+
+      if (data.recruiterId) {
+        const recruiter = activeRecruiters.find((r) => r.id === data.recruiterId);
+        if (!recruiter) {
+          throw new AppError('The assigned recruiter does not belong to the selected company', 400);
         }
+        recruiterId = recruiter.id;
+      } else if (activeRecruiters.length > 0) {
+        recruiterId = activeRecruiters[0].id;
       } else {
-        // Fallback: Super Admin did not select a company, assign to first available company with a recruiter
-        const firstCompanyWithRecruiter = await prisma.company.findFirst({
-          where: { recruiters: { some: {} } },
-          include: { recruiters: true },
-        });
-        if (!firstCompanyWithRecruiter || firstCompanyWithRecruiter.recruiters.length === 0) {
-          throw new AppError('No company with an active recruiter found. Please specify an authorized company.', 400);
+        if (targetStatus === JOB_STATUS.PUBLISHED) {
+          throw new AppError('HR/Recruiter required — this company has no eligible HR accounts.', 400);
         }
-        companyId = firstCompanyWithRecruiter.id;
-        recruiterId = firstCompanyWithRecruiter.recruiters[0].id;
+        throw new AppError('HR/Recruiter required — this company has no eligible HR accounts.', 400);
+      }
+    } else if (currentUser.role === ROLES.COMPANY) {
+      const targetCompanyId = currentUser.companyId;
+      if (!targetCompanyId) {
+        throw new AppError('No organization associated with this company account', 403);
+      }
+      companyId = targetCompanyId;
+
+      if (data.companyId && data.companyId !== companyId) {
+        throw new AppError('Forbidden: Cannot create job postings for another company', 403);
+      }
+
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        include: { recruiters: { include: { user: true } } },
+      });
+      const activeRecruiters = (company?.recruiters || []).filter(
+        (r) => r.user && r.user.status === 'ACTIVE'
+      );
+
+      if (data.recruiterId) {
+        const recruiter = activeRecruiters.find((r) => r.id === data.recruiterId);
+        if (!recruiter) {
+          throw new AppError('The assigned recruiter does not belong to your company', 400);
+        }
+        recruiterId = recruiter.id;
+      } else if (activeRecruiters.length > 0) {
+        recruiterId = activeRecruiters[0].id;
+      } else {
+        if (targetStatus === JOB_STATUS.PUBLISHED) {
+          throw new AppError('HR/Recruiter required — this company has no eligible HR accounts.', 400);
+        }
+        throw new AppError('HR/Recruiter required — this company has no eligible HR accounts.', 400);
       }
     } else if (currentUser.role === ROLES.RECRUITER) {
       let profile = currentUser.recruiterProfile;
@@ -79,7 +118,6 @@ export class JobService {
       companyId = profile.companyId;
       recruiterId = profile.id;
 
-      // Ensure a recruiter cannot create a job for another company or recruiter
       if (data.companyId && data.companyId !== companyId) {
         throw new AppError('Forbidden: Cannot create job postings for another company', 403);
       }
@@ -102,14 +140,22 @@ export class JobService {
         location: data.location,
         employmentType: data.employmentType as any,
         experienceLevel: data.experienceLevel as any,
-        salaryMin: data.salaryMin || null,
-        salaryMax: data.salaryMax || null,
+        salaryMin: data.salaryMin !== undefined ? data.salaryMin : null,
+        salaryMax: data.salaryMax !== undefined ? data.salaryMax : null,
         salaryCurrency: data.salaryCurrency || 'USD',
-        deadline: data.deadline ? new Date(data.deadline) : null,
+        deadline: data.deadline ? normalizeJobDeadline(data.deadline) : null,
         status: (data.status || JOB_STATUS.PUBLISHED) as any,
       },
       include: {
         company: true,
+        recruiter: {
+          select: {
+            id: true,
+            title: true,
+            department: true,
+            user: { select: { email: true } },
+          },
+        },
       },
     });
 
@@ -132,20 +178,31 @@ export class JobService {
 
     if (!job) throw new AppError('Job not found', 404);
 
-    // Enforce recruiter company isolation
-    if (
-      currentUser.role === ROLES.RECRUITER &&
-      job.companyId !== currentUser.recruiterProfile?.companyId
-    ) {
-      throw new AppError('Forbidden: Cannot modify jobs belonging to another company', 403);
-    }
-
-    if (currentUser.role === ROLES.RECRUITER) {
+    // Enforce company isolation
+    if (currentUser.role === ROLES.COMPANY) {
+      if (job.companyId !== currentUser.companyId) {
+        throw new AppError('Forbidden: Cannot modify jobs belonging to another company', 403);
+      }
+      if (data.companyId && data.companyId !== currentUser.companyId) {
+        throw new AppError('Forbidden: Cannot reassign jobs to another company', 403);
+      }
+    } else if (currentUser.role === ROLES.RECRUITER) {
+      if (job.companyId !== currentUser.recruiterProfile?.companyId) {
+        throw new AppError('Forbidden: Cannot modify jobs belonging to another company', 403);
+      }
       if (data.companyId && data.companyId !== currentUser.recruiterProfile?.companyId) {
         throw new AppError('Forbidden: Cannot reassign jobs to another company', 403);
       }
       if (data.recruiterId && data.recruiterId !== currentUser.recruiterProfile?.id) {
         throw new AppError('Forbidden: Cannot reassign jobs to another recruiter', 403);
+      }
+    }
+
+    // Validate deadline format and calendar date if provided
+    if (data.deadline !== undefined && data.deadline !== null) {
+      const deadlineValidation = validateJobDeadline(data.deadline);
+      if (!deadlineValidation.valid) {
+        throw new AppError(deadlineValidation.error || 'Application deadline cannot be in the past.', 400);
       }
     }
 
@@ -162,23 +219,22 @@ export class JobService {
       throw new AppError('Minimum salary cannot exceed maximum salary', 400);
     }
 
-    // Respect closed/expired job rules: prevent unintended reopening or publication
     const targetStatus = data.status ?? job.status;
     const targetDeadline =
       data.deadline !== undefined
         ? data.deadline
-          ? new Date(data.deadline)
+          ? normalizeJobDeadline(data.deadline)
           : null
         : job.deadline;
 
-    if (targetStatus === JOB_STATUS.PUBLISHED && targetDeadline && targetDeadline < new Date()) {
+    if (targetStatus === JOB_STATUS.PUBLISHED && targetDeadline && targetDeadline.getTime() < Date.now()) {
       throw new AppError(
         'Cannot publish or open a job with an expired deadline. Please update the deadline to a future date or remove the deadline.',
         400
       );
     }
 
-    // Validate company and recruiter re-assignment for Super Admin
+    // Validate company and recruiter re-assignment
     let newCompanyId = job.companyId;
     let newRecruiterId = job.recruiterId;
 
@@ -198,11 +254,21 @@ export class JobService {
           newRecruiterId = rec.id;
         } else if (comp.recruiters.length > 0) {
           newRecruiterId = comp.recruiters[0].id;
+        } else if (targetStatus === JOB_STATUS.PUBLISHED) {
+          throw new AppError('HR/Recruiter required — this company has no eligible HR accounts.', 400);
         }
       } else if (data.recruiterId && data.recruiterId !== job.recruiterId) {
         const rec = await prisma.recruiterProfile.findUnique({ where: { id: data.recruiterId } });
         if (!rec || rec.companyId !== job.companyId) {
           throw new AppError('Assigned recruiter does not belong to the job’s company', 400);
+        }
+        newRecruiterId = rec.id;
+      }
+    } else if (currentUser.role === ROLES.COMPANY) {
+      if (data.recruiterId) {
+        const rec = await prisma.recruiterProfile.findUnique({ where: { id: data.recruiterId } });
+        if (!rec || rec.companyId !== job.companyId) {
+          throw new AppError('The assigned recruiter does not belong to your company', 400);
         }
         newRecruiterId = rec.id;
       }
@@ -224,10 +290,20 @@ export class JobService {
         salaryMin: data.salaryMin !== undefined ? data.salaryMin : job.salaryMin,
         salaryMax: data.salaryMax !== undefined ? data.salaryMax : job.salaryMax,
         salaryCurrency: data.salaryCurrency ?? job.salaryCurrency,
-        deadline: data.deadline !== undefined ? (data.deadline ? new Date(data.deadline) : null) : job.deadline,
+        deadline: data.deadline !== undefined ? normalizeJobDeadline(data.deadline) : job.deadline,
         status: data.status ?? job.status,
       },
-      include: { company: true },
+      include: {
+        company: true,
+        recruiter: {
+          select: {
+            id: true,
+            title: true,
+            department: true,
+            user: { select: { email: true } },
+          },
+        },
+      },
     });
 
     await auditService.log({
@@ -246,10 +322,10 @@ export class JobService {
     if (!job) throw new AppError('Job not found', 404);
 
     if (
-      currentUser.role === ROLES.RECRUITER &&
-      job.companyId !== currentUser.recruiterProfile?.companyId
+      (currentUser.role === ROLES.RECRUITER && (job.companyId !== currentUser.recruiterProfile?.companyId || job.recruiterId !== currentUser.recruiterProfile?.id)) ||
+      (currentUser.role === ROLES.COMPANY && job.companyId !== currentUser.companyId)
     ) {
-      throw new AppError('Forbidden: Cannot modify jobs belonging to another company', 403);
+      throw new AppError('Forbidden: Cannot modify jobs belonging to another company or recruiter', 403);
     }
 
     const updated = await prisma.job.update({
@@ -274,10 +350,10 @@ export class JobService {
     if (!job) throw new AppError('Job not found', 404);
 
     if (
-      currentUser.role === ROLES.RECRUITER &&
-      job.companyId !== currentUser.recruiterProfile?.companyId
+      (currentUser.role === ROLES.RECRUITER && (job.companyId !== currentUser.recruiterProfile?.companyId || job.recruiterId !== currentUser.recruiterProfile?.id)) ||
+      (currentUser.role === ROLES.COMPANY && job.companyId !== currentUser.companyId)
     ) {
-      throw new AppError('Forbidden: Cannot delete jobs belonging to another company', 403);
+      throw new AppError('Forbidden: Cannot delete jobs belonging to another company or recruiter', 403);
     }
 
     await prisma.job.delete({ where: { id: jobId } });
@@ -314,14 +390,22 @@ export class JobService {
 
     if (!job) throw new AppError('Job not found', 404);
 
-    // If job is draft/archived, only company recruiter or super admin can see it
-    if (job.status !== JOB_STATUS.PUBLISHED) {
-      if (!currentUser) throw new AppError('Job not found', 404);
-      if (
-        currentUser.role !== ROLES.SUPER_ADMIN &&
-        (currentUser.role !== ROLES.RECRUITER ||
-          currentUser.recruiterProfile?.companyId !== job.companyId)
-      ) {
+    // Enforce strict multi-tenant access control:
+    // COMPANY can see ONLY their own company's jobs
+    if (currentUser?.role === ROLES.COMPANY) {
+      if (job.companyId !== currentUser.companyId) {
+        throw new AppError('Job not found', 404);
+      }
+    } else if (currentUser?.role === ROLES.RECRUITER) {
+      const recCompanyId = currentUser.recruiterProfile?.companyId || currentUser.companyId;
+      if (job.companyId !== recCompanyId) {
+        throw new AppError('Job not found', 404);
+      }
+      if (currentUser.recruiterProfile?.id && job.recruiterId && job.recruiterId !== currentUser.recruiterProfile.id) {
+        throw new AppError('Job not found', 404);
+      }
+    } else if (!currentUser || currentUser.role === ROLES.APPLICANT) {
+      if (job.status !== JOB_STATUS.PUBLISHED) {
         throw new AppError('Job not found', 404);
       }
     }
@@ -379,7 +463,6 @@ export class JobService {
     // Role-based visibility
     if (!params.currentUser || params.currentUser.role === ROLES.APPLICANT) {
       andConditions.push({ status: JOB_STATUS.PUBLISHED });
-      // Filter out expired jobs for applicants and public
       const now = new Date();
       andConditions.push({
         OR: [
@@ -390,11 +473,25 @@ export class JobService {
       if (params.companyId) {
         andConditions.push({ companyId: params.companyId });
       }
+    } else if (params.currentUser.role === ROLES.COMPANY) {
+      const targetCompanyId = params.currentUser.companyId;
+      if (!targetCompanyId) {
+        throw new AppError('No organization associated with this company account', 403);
+      }
+      andConditions.push({ companyId: targetCompanyId });
+      if (params.status) {
+        andConditions.push({ status: params.status });
+      }
     } else if (params.currentUser.role === ROLES.RECRUITER) {
-      // Recruiter sees their company's jobs by default, or filtered
-      const recruiterCompanyId = params.currentUser.recruiterProfile?.companyId;
-      if (recruiterCompanyId) {
-        andConditions.push({ companyId: recruiterCompanyId });
+      const recruiterCompanyId = params.currentUser.recruiterProfile?.companyId || params.currentUser.companyId;
+      if (!recruiterCompanyId) {
+        throw new AppError('No organization associated with this recruiter account', 403);
+      }
+      andConditions.push({ companyId: recruiterCompanyId });
+
+      const recruiterId = params.currentUser.recruiterProfile?.id;
+      if (recruiterId) {
+        andConditions.push({ recruiterId });
       }
       if (params.status) {
         andConditions.push({ status: params.status });
@@ -407,16 +504,16 @@ export class JobService {
     if (params.search) {
       andConditions.push({
         OR: [
-          { title: { contains: params.search, mode: 'insensitive' } },
-          { skills: { contains: params.search, mode: 'insensitive' } },
-          { description: { contains: params.search, mode: 'insensitive' } },
-          { company: { name: { contains: params.search, mode: 'insensitive' } } },
+          { title: { contains: params.search } },
+          { skills: { contains: params.search } },
+          { description: { contains: params.search } },
+          { company: { name: { contains: params.search } } },
         ],
       });
     }
 
     if (params.location) {
-      andConditions.push({ location: { contains: params.location, mode: 'insensitive' } });
+      andConditions.push({ location: { contains: params.location } });
     }
     if (params.employmentType) {
       andConditions.push({ employmentType: params.employmentType });
@@ -438,7 +535,7 @@ export class JobService {
         where: { userId: params.currentUser.id },
         select: { id: true },
       });
-      applicantProfileId = profile?.id;
+      if (profile) applicantProfileId = profile.id;
     }
 
     const [jobs, total] = await Promise.all([
@@ -446,21 +543,17 @@ export class JobService {
         where,
         include: {
           company: true,
+          recruiter: {
+            select: {
+              id: true,
+              title: true,
+              department: true,
+              user: { select: { email: true } },
+            },
+          },
           _count: {
             select: { applications: true },
           },
-          ...(applicantProfileId
-            ? {
-                applications: {
-                  where: { applicantId: applicantProfileId },
-                  select: {
-                    id: true,
-                    currentStage: true,
-                    appliedAt: true,
-                  },
-                },
-              }
-            : {}),
         },
         orderBy,
         skip,
@@ -469,18 +562,43 @@ export class JobService {
       prisma.job.count({ where }),
     ]);
 
-    const mappedJobs = jobs.map((job: any) => {
-      const applicantApp = job.applications && job.applications.length > 0 ? job.applications[0] : null;
-      return {
-        ...job,
-        hasApplied: Boolean(applicantApp),
-        applicationInfo: applicantApp || null,
-        applications: undefined,
-      };
-    });
+    // Check application status for applicants
+    let appliedJobIds = new Set<string>();
+    let applicantAppsByJobId = new Map<string, any>();
+    if (applicantProfileId) {
+      const userApplications = await prisma.application.findMany({
+        where: {
+          applicantId: applicantProfileId,
+          jobId: { in: jobs.map((j) => j.id) },
+        },
+        select: {
+          id: true,
+          jobId: true,
+          currentStage: true,
+          appliedAt: true,
+        },
+      });
+      userApplications.forEach((a) => {
+        appliedJobIds.add(a.jobId);
+        applicantAppsByJobId.set(a.jobId, a);
+      });
+    }
 
-    return { jobs: mappedJobs, total, page, limit };
+    const enrichedJobs = jobs.map((job) => ({
+      ...job,
+      hasApplied: appliedJobIds.has(job.id),
+      applicationInfo: applicantAppsByJobId.get(job.id) || null,
+    }));
+
+    return {
+      jobs: enrichedJobs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 }
 
 export const jobService = new JobService();
+

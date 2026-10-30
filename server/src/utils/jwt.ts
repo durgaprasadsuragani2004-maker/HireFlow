@@ -6,9 +6,9 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
-  companyId?: string;
-  recruiterId?: string;
-  applicantId?: string;
+  companyId?: string | null;
+  recruiterId?: string | null;
+  applicantId?: string | null;
 }
 
 export const signAccessToken = (payload: TokenPayload): string => {

@@ -111,6 +111,7 @@ export class AuthService {
         email: result.user.email,
         role: result.user.role,
         status: result.user.status,
+        companyId: result.companyId || (result.user as any).companyId || null,
       },
       tokens: {
         accessToken,
@@ -123,6 +124,7 @@ export class AuthService {
     const user = await prisma.user.findUnique({
       where: { email: data.email },
       include: {
+        company: true,
         recruiterProfile: {
           include: { company: true },
         },
@@ -147,7 +149,7 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       role: user.role,
-      companyId: user.recruiterProfile?.companyId,
+      companyId: user.companyId || user.recruiterProfile?.companyId || null,
       recruiterId: user.recruiterProfile?.id,
       applicantId: user.applicantProfile?.id,
     };
@@ -169,6 +171,8 @@ export class AuthService {
         email: user.email,
         role: user.role,
         status: user.status,
+        companyId: user.companyId || user.recruiterProfile?.companyId || null,
+        company: user.company || user.recruiterProfile?.company || null,
         recruiterProfile: user.recruiterProfile
           ? {
               id: user.recruiterProfile.id,
@@ -203,6 +207,7 @@ export class AuthService {
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       include: {
+        company: true,
         recruiterProfile: true,
         applicantProfile: true,
       },
@@ -216,7 +221,7 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       role: user.role,
-      companyId: user.recruiterProfile?.companyId,
+      companyId: user.companyId || user.recruiterProfile?.companyId || null,
       recruiterId: user.recruiterProfile?.id,
       applicantId: user.applicantProfile?.id,
     };
@@ -238,6 +243,8 @@ export class AuthService {
         email: true,
         role: true,
         status: true,
+        companyId: true,
+        company: true,
         createdAt: true,
         recruiterProfile: {
           include: {

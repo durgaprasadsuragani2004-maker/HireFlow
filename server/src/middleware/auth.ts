@@ -40,6 +40,7 @@ export const authenticate = async (
       include: {
         recruiterProfile: true,
         applicantProfile: true,
+        company: true,
       },
     });
 
@@ -58,6 +59,8 @@ export const authenticate = async (
       email: user.email,
       role: user.role as RoleType,
       status: user.status as any,
+      companyId: user.companyId || user.recruiterProfile?.companyId || null,
+      company: user.company || user.recruiterProfile?.company || null,
       recruiterProfile: user.recruiterProfile
         ? {
             id: user.recruiterProfile.id,
@@ -129,7 +132,7 @@ export const optionalAuth = async (
       const payload = verifyAccessToken(token);
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },
-        include: { recruiterProfile: true, applicantProfile: true },
+        include: { recruiterProfile: true, applicantProfile: true, company: true },
       });
       if (user && user.status !== USER_STATUS.SUSPENDED) {
         req.user = {
@@ -137,6 +140,8 @@ export const optionalAuth = async (
           email: user.email,
           role: user.role as RoleType,
           status: user.status as any,
+          companyId: user.companyId || user.recruiterProfile?.companyId || null,
+          company: user.company || user.recruiterProfile?.company || null,
           recruiterProfile: user.recruiterProfile
             ? {
                 id: user.recruiterProfile.id,

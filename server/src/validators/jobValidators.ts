@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { EMPLOYMENT_TYPES, EXPERIENCE_LEVELS, JOB_STATUS } from '../config/constants';
+import { validateJobDeadline } from '../utils/dateUtils';
 
 const jobBaseSchema = z.object({
   title: z.string().min(3, 'Job title must be at least 3 characters').trim(),
@@ -14,17 +15,34 @@ const jobBaseSchema = z.object({
     EMPLOYMENT_TYPES.CONTRACT,
     EMPLOYMENT_TYPES.INTERNSHIP,
   ]),
-  experienceLevel: z.enum([
-    EXPERIENCE_LEVELS.ENTRY_LEVEL,
-    EXPERIENCE_LEVELS.MID_LEVEL,
-    EXPERIENCE_LEVELS.SENIOR,
-    EXPERIENCE_LEVELS.LEAD,
-    EXPERIENCE_LEVELS.EXECUTIVE,
-  ]),
+  experienceLevel: z.preprocess(
+    (val) => (val === 'SENIOR_LEVEL' ? 'SENIOR' : val),
+    z.enum([
+      EXPERIENCE_LEVELS.ENTRY_LEVEL,
+      EXPERIENCE_LEVELS.MID_LEVEL,
+      EXPERIENCE_LEVELS.SENIOR,
+      EXPERIENCE_LEVELS.LEAD,
+      EXPERIENCE_LEVELS.EXECUTIVE,
+    ])
+  ),
   salaryMin: z.coerce.number().int().nonnegative().optional().nullable(),
   salaryMax: z.coerce.number().int().nonnegative().optional().nullable(),
   salaryCurrency: z.string().default('USD'),
-  deadline: z.string().optional().nullable(),
+  deadline: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const res = validateJobDeadline(val);
+        return res.valid;
+      },
+      (val) => {
+        const res = validateJobDeadline(val);
+        return { message: res.error || 'Application deadline cannot be in the past.' };
+      }
+    ),
   status: z.enum([JOB_STATUS.DRAFT, JOB_STATUS.PUBLISHED, JOB_STATUS.ARCHIVED]).optional(),
   companyId: z.string().optional(),
   recruiterId: z.string().optional(),
@@ -65,12 +83,28 @@ export const updateJobSchema = jobBaseSchema.partial().refine(
 export const queryJobsSchema = z.object({
   search: z.string().optional(),
   location: z.string().optional(),
-  employmentType: z.string().optional(),
-  experienceLevel: z.string().optional(),
-  status: z.string().optional(),
+  employmentType: z
+    .enum([
+      EMPLOYMENT_TYPES.FULL_TIME,
+      EMPLOYMENT_TYPES.PART_TIME,
+      EMPLOYMENT_TYPES.CONTRACT,
+      EMPLOYMENT_TYPES.INTERNSHIP,
+    ])
+    .optional(),
+  experienceLevel: z
+    .enum([
+      EXPERIENCE_LEVELS.ENTRY_LEVEL,
+      EXPERIENCE_LEVELS.MID_LEVEL,
+      EXPERIENCE_LEVELS.SENIOR,
+      EXPERIENCE_LEVELS.LEAD,
+      EXPERIENCE_LEVELS.EXECUTIVE,
+    ])
+    .optional(),
+  status: z.enum([JOB_STATUS.DRAFT, JOB_STATUS.PUBLISHED, JOB_STATUS.ARCHIVED]).optional(),
   companyId: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(10),
-  sortBy: z.enum(['createdAt', 'title', 'salaryMax', 'deadline']).default('createdAt'),
+  sortBy: z.enum(['createdAt', 'title', 'deadline', 'salaryMax']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
+

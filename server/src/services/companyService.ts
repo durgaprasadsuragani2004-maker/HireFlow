@@ -1,8 +1,9 @@
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
-import { ROLES, AUDIT_ACTIONS, APPLICATION_STAGES, JOB_STATUS } from '../config/constants';
+import { ROLES, AUDIT_ACTIONS, APPLICATION_STAGES, JOB_STATUS, USER_STATUS } from '../config/constants';
 import { auditService } from './auditService';
 import { AuthUser } from '../types';
+import { hashPassword } from '../utils/password';
 
 export class CompanyService {
   async getCompany(companyId: string) {
@@ -86,6 +87,8 @@ export class CompanyService {
       companySize?: string | null;
       contactEmail?: string | null;
       contactPhone?: string | null;
+      adminEmail?: string | null;
+      adminPassword?: string | null;
     },
     currentUser: AuthUser
   ) {
@@ -95,10 +98,10 @@ export class CompanyService {
 
     const trimmedName = data.name.trim();
 
-    // Prevent duplicate companies by unique name
+    // Prevent duplicate companies by unique name (SQLite case handling)
     const existing = await prisma.company.findFirst({
       where: {
-        name: { equals: trimmedName, mode: 'insensitive' },
+        name: trimmedName,
       },
     });
 
@@ -106,33 +109,95 @@ export class CompanyService {
       throw new AppError('A company with this name already exists', 409);
     }
 
-    const company = await prisma.company.create({
-      data: {
-        name: trimmedName,
-        logo: data.logo || null,
-        description: data.description || null,
-        website: data.website || null,
-        industry: data.industry || null,
-        location: data.location || null,
-        companySize: data.companySize || null,
-        contactEmail: data.contactEmail || null,
-        contactPhone: data.contactPhone || null,
-      },
-      include: {
-        recruiters: true,
-        _count: { select: { jobs: true } },
-      },
+    const hasAdminAccount = Boolean(
+      data.adminEmail && data.adminEmail.trim() && data.adminPassword && data.adminPassword.trim()
+    );
+
+    if (hasAdminAccount) {
+      const email = data.adminEmail!.trim().toLowerCase();
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        throw new AppError('An account with this email address already exists', 409);
+      }
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const company = await tx.company.create({
+        data: {
+          name: trimmedName,
+          logo: data.logo || null,
+          description: data.description || null,
+          website: data.website || null,
+          industry: data.industry || null,
+          location: data.location || null,
+          companySize: data.companySize || null,
+          contactEmail: data.contactEmail || null,
+          contactPhone: data.contactPhone || null,
+        },
+        include: {
+          recruiters: true,
+          _count: { select: { jobs: true, recruiters: true } },
+        },
+      });
+
+      let provisionedUser = null;
+      if (hasAdminAccount) {
+        const email = data.adminEmail!.trim().toLowerCase();
+        const passwordHash = await hashPassword(data.adminPassword!.trim());
+        provisionedUser = await tx.user.create({
+          data: {
+            email,
+            passwordHash,
+            role: ROLES.COMPANY,
+            status: USER_STATUS.ACTIVE,
+            companyId: company.id,
+          },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            status: true,
+            companyId: true,
+            createdAt: true,
+          },
+        });
+      }
+
+      return { company, provisionedUser };
     });
 
     await auditService.log({
       actorId: currentUser.id,
       action: AUDIT_ACTIONS.COMPANY_CREATE,
       entity: 'Company',
-      entityId: company.id,
-      metadata: { name: company.name },
+      entityId: result.company.id,
+      metadata: {
+        name: result.company.name,
+        accountProvisioned: Boolean(result.provisionedUser),
+        accountEmail: result.provisionedUser?.email,
+      },
     });
 
-    return company;
+    if (result.provisionedUser) {
+      await auditService.log({
+        actorId: currentUser.id,
+        action: AUDIT_ACTIONS.USER_STATUS_CHANGE,
+        entity: 'User',
+        entityId: result.provisionedUser.id,
+        metadata: {
+          email: result.provisionedUser.email,
+          role: result.provisionedUser.role,
+          companyId: result.company.id,
+          action: 'COMPANY_ACCOUNT_PROVISION',
+        },
+      });
+    }
+
+    return {
+      ...result.company,
+      provisionedUser: result.provisionedUser,
+      adminAccount: result.provisionedUser,
+    };
   }
 
   async updateCompany(companyId: string, data: any, currentUser: AuthUser) {
@@ -143,6 +208,13 @@ export class CompanyService {
     if (
       currentUser.role === ROLES.RECRUITER &&
       currentUser.recruiterProfile?.companyId !== companyId
+    ) {
+      throw new AppError('Forbidden: Cannot modify another company profile', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      currentUser.companyId !== companyId
     ) {
       throw new AppError('Forbidden: Cannot modify another company profile', 403);
     }
@@ -159,7 +231,7 @@ export class CompanyService {
     if (data.name && data.name.trim() !== currentCompany.name) {
       const duplicate = await prisma.company.findFirst({
         where: {
-          name: { equals: data.name.trim(), mode: 'insensitive' },
+          name: data.name.trim(),
           NOT: { id: companyId },
         },
       });
@@ -252,6 +324,13 @@ export class CompanyService {
     if (
       currentUser.role === ROLES.RECRUITER &&
       currentUser.recruiterProfile?.companyId !== companyId
+    ) {
+      throw new AppError('Forbidden: Cannot view analytics for another company', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      currentUser.companyId !== companyId
     ) {
       throw new AppError('Forbidden: Cannot view analytics for another company', 403);
     }

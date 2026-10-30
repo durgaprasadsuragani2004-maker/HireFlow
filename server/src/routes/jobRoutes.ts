@@ -10,11 +10,11 @@ const router = Router();
 router.get('/', optionalAuth, validateQuery(queryJobsSchema), jobController.queryJobs);
 router.get('/:id', optionalAuth, jobController.getJobById);
 
-// Recruiter & Super Admin Job CRUD
+// Recruiter, Company & Super Admin Job CRUD
 router.post(
   '/',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(createJobSchema),
   jobController.createJob
 );
@@ -22,7 +22,15 @@ router.post(
 router.patch(
   '/:id',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
+  validateBody(updateJobSchema),
+  jobController.updateJob
+);
+
+router.put(
+  '/:id',
+  authenticate,
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(updateJobSchema),
   jobController.updateJob
 );
@@ -30,22 +38,23 @@ router.patch(
 router.post(
   '/:id/publish',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   jobController.publishJob
 );
 
 router.post(
   '/:id/unpublish',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   jobController.unpublishJob
 );
 
 router.delete(
   '/:id',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   jobController.deleteJob
 );
 
 export default router;
+

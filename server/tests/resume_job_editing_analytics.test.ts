@@ -51,6 +51,26 @@ describe('Resume Auth, Application Status, Job Editing, & Company Analytics Test
     expect(quantJob).toBeDefined();
     technovaJobId = techJob!.id;
     quantumJobId = quantJob!.id;
+
+    // Ensure Alex Morgan has an application to TechNova job
+    const alexUser = await prisma.user.findUnique({
+      where: { email: 'alex.dev@gmail.com' },
+      include: { applicantProfile: true },
+    });
+    if (alexUser?.applicantProfile) {
+      const existingAlexApp = await prisma.application.findFirst({
+        where: { applicantId: alexUser.applicantProfile.id, jobId: technovaJobId },
+      });
+      if (!existingAlexApp) {
+        await prisma.application.create({
+          data: {
+            jobId: technovaJobId,
+            applicantId: alexUser.applicantProfile.id,
+            currentStage: APPLICATION_STAGES.INTERVIEW,
+          },
+        });
+      }
+    }
   });
 
   // ==========================================
