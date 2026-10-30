@@ -1,5 +1,6 @@
 import request from 'supertest';
 import app from '../src/app';
+import { prisma } from '../src/config/database';
 
 describe('Applicant, Notifications & Dashboard Tests', () => {
   let applicantToken: string;
@@ -56,11 +57,11 @@ describe('Applicant, Notifications & Dashboard Tests', () => {
 
   describe('Job Deadline Validation', () => {
     it('should reject application when job deadline has passed', async () => {
-      // Create a job with deadline in the past
-      const pastJobRes = await request(app)
-        .post('/api/jobs')
-        .set('Authorization', `Bearer ${recruiterToken}`)
-        .send({
+      const rec = await prisma.recruiterProfile.findFirst();
+      const pastJob = await prisma.job.create({
+        data: {
+          companyId: rec!.companyId,
+          recruiterId: rec!.id,
           title: `Expired Position ${Date.now()}`,
           description: 'This job has already expired and should not accept applications.',
           requirements: 'Standard requirements',
@@ -69,15 +70,14 @@ describe('Applicant, Notifications & Dashboard Tests', () => {
           location: 'Remote',
           employmentType: 'CONTRACT',
           experienceLevel: 'ENTRY_LEVEL',
-          deadline: '2020-01-01T00:00:00.000Z',
-        });
-
-      expect(pastJobRes.status).toBe(201);
-      const expiredJobId = pastJobRes.body.data.id;
+          deadline: new Date('2020-01-01T00:00:00.000Z'),
+          status: 'PUBLISHED',
+        },
+      });
 
       // Now attempt to apply
       const applyRes = await request(app)
-        .post(`/api/applications/jobs/${expiredJobId}/apply`)
+        .post(`/api/applications/jobs/${pastJob.id}/apply`)
         .set('Authorization', `Bearer ${applicantToken}`)
         .send({ coverLetter: 'Applying to expired job' });
 

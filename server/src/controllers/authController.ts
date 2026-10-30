@@ -83,7 +83,7 @@ export class AuthController {
 
   async adminCreateUser(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
-      const newUser = await authService.adminCreateUser(req.body, req.user!.id);
+      const newUser = await authService.adminCreateUser(req.body, req.user!);
       sendSuccess(res, newUser, 'User created successfully', 201);
     } catch (err) {
       next(err);

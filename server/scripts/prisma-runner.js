@@ -6,7 +6,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const command = process.argv[2] || 'generate';
 const dbUrl = process.env.DATABASE_URL || '';
-const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://');
+const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://') || process.env.NODE_ENV === 'production';
 const schema = isPostgres ? 'prisma/schema.prisma' : 'prisma/schema.sqlite.prisma';
 
 console.log(`[Prisma Runner] Target Database: ${isPostgres ? 'PostgreSQL' : 'SQLite'} (${schema})`);

@@ -6,6 +6,7 @@ import { ROLES, USER_STATUS, AUDIT_ACTIONS } from '../config/constants';
 import { auditService } from './auditService';
 import { notificationService } from './notificationService';
 import { NOTIFICATION_TYPES } from '../config/constants';
+import { AuthUser } from '../types';
 
 export class AuthService {
   async register(data: {
@@ -279,20 +280,31 @@ export class AuthService {
 
     if (!user) throw new AppError('User not found', 404);
 
-    if (user.role === ROLES.APPLICANT && user.applicantProfile) {
-      await prisma.applicantProfile.update({
-        where: { id: user.applicantProfile.id },
-        data: {
-          fullName: data.fullName ?? user.applicantProfile.fullName,
-          phone: data.phone ?? user.applicantProfile.phone,
-          location: data.location ?? user.applicantProfile.location,
-          headline: data.headline ?? user.applicantProfile.headline,
-          summary: data.summary ?? user.applicantProfile.summary,
-          linkedinUrl: data.linkedinUrl ?? user.applicantProfile.linkedinUrl,
-          githubUrl: data.githubUrl ?? user.applicantProfile.githubUrl,
-          portfolioUrl: data.portfolioUrl ?? user.applicantProfile.portfolioUrl,
-        },
-      });
+    if (user.role === ROLES.APPLICANT) {
+      if (user.applicantProfile) {
+        await prisma.applicantProfile.update({
+          where: { id: user.applicantProfile.id },
+          data: {
+            fullName: data.fullName ?? user.applicantProfile.fullName,
+            phone: data.phone ?? user.applicantProfile.phone,
+            location: data.location ?? user.applicantProfile.location,
+            headline: data.headline ?? user.applicantProfile.headline,
+            summary: data.summary ?? user.applicantProfile.summary,
+            linkedinUrl: data.linkedinUrl ?? user.applicantProfile.linkedinUrl,
+            githubUrl: data.githubUrl ?? user.applicantProfile.githubUrl,
+            portfolioUrl: data.portfolioUrl ?? user.applicantProfile.portfolioUrl,
+          },
+        });
+      } else if (data.fullName) {
+        await prisma.applicantProfile.create({
+          data: {
+            userId,
+            fullName: data.fullName,
+            phone: data.phone || null,
+            location: data.location || null,
+          },
+        });
+      }
     } else if (user.role === ROLES.RECRUITER && user.recruiterProfile) {
       await prisma.recruiterProfile.update({
         where: { id: user.recruiterProfile.id },
@@ -302,6 +314,22 @@ export class AuthService {
           phone: data.phone ?? user.recruiterProfile.phone,
         },
       });
+    } else if (user.role === ROLES.SUPER_ADMIN && data.fullName) {
+      if (user.applicantProfile) {
+        await prisma.applicantProfile.update({
+          where: { id: user.applicantProfile.id },
+          data: {
+            fullName: data.fullName,
+          },
+        });
+      } else {
+        await prisma.applicantProfile.create({
+          data: {
+            userId,
+            fullName: data.fullName,
+          },
+        });
+      }
     }
 
     await auditService.log({
@@ -418,11 +446,26 @@ export class AuthService {
       role: string;
       status?: string;
       fullName?: string;
+      companyId?: string;
       companyName?: string;
       title?: string;
+      recruiterProfile?: any;
     },
-    actorId: string
+    currentUser: AuthUser | string
   ) {
+    const actorId = typeof currentUser === 'string' ? currentUser : currentUser.id;
+    const actorRole = typeof currentUser === 'string' ? null : currentUser.role;
+    const actorCompanyId = typeof currentUser === 'string' ? null : currentUser.companyId;
+
+    if (actorRole === ROLES.COMPANY) {
+      if (data.role !== ROLES.RECRUITER) {
+        throw new AppError('Forbidden: Organization accounts can only provision recruiter accounts', 403);
+      }
+      if (data.companyId && data.companyId !== actorCompanyId) {
+        throw new AppError('Forbidden: Cannot create recruiter for another organization', 403);
+      }
+    }
+
     const existing = await prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -434,36 +477,65 @@ export class AuthService {
     const passwordHash = await hashPassword(data.password);
 
     const result = await prisma.$transaction(async (tx) => {
+      let resolvedCompanyId: string | null = null;
+
+      if (data.role === ROLES.COMPANY) {
+        let company = null;
+        if (data.companyId) {
+          company = await tx.company.findUnique({ where: { id: data.companyId } });
+        } else if (data.companyName) {
+          company = await tx.company.findUnique({ where: { name: data.companyName } });
+        }
+        if (!company) {
+          throw new AppError('A valid existing company is required to provision a Company account', 400);
+        }
+        resolvedCompanyId = company.id;
+      } else if (data.role === ROLES.RECRUITER) {
+        let company = null;
+        if (actorRole === ROLES.COMPANY) {
+          resolvedCompanyId = actorCompanyId ?? null;
+          company = await tx.company.findUnique({ where: { id: actorCompanyId! } });
+        } else if (data.companyId) {
+          company = await tx.company.findUnique({ where: { id: data.companyId } });
+        } else if (data.companyName) {
+          company = await tx.company.findUnique({ where: { name: data.companyName } });
+          if (!company) {
+            company = await tx.company.create({
+              data: {
+                name: data.companyName,
+                description: `${data.companyName} on HireFlow ATS`,
+                contactEmail: data.email,
+              },
+            });
+          }
+        }
+        if (!company) {
+          throw new AppError('Please select or create a valid company for this recruiter', 400);
+        }
+        resolvedCompanyId = company.id;
+      }
+
       const user = await tx.user.create({
         data: {
           email: data.email,
           passwordHash,
           role: data.role as any,
           status: (data.status as any) || USER_STATUS.ACTIVE,
+          companyId: resolvedCompanyId,
         },
       });
 
       if (data.role === ROLES.RECRUITER) {
-        const companyName = data.companyName || 'HireFlow Partner';
-        let company = await tx.company.findUnique({
-          where: { name: companyName },
-        });
-
-        if (!company) {
-          company = await tx.company.create({
-            data: {
-              name: companyName,
-              description: `${companyName} on HireFlow ATS`,
-              contactEmail: data.email,
-            },
-          });
-        }
-
+        const title = data.title || (data as any).recruiterProfile?.title || 'Recruiter';
+        const department = (data as any).department || (data as any).recruiterProfile?.department || null;
+        const phone = (data as any).phone || (data as any).recruiterProfile?.phone || null;
         await tx.recruiterProfile.create({
           data: {
             userId: user.id,
-            companyId: company.id,
-            title: data.title || 'Recruiter',
+            companyId: resolvedCompanyId!,
+            title,
+            department,
+            phone,
           },
         });
       } else if (data.role === ROLES.APPLICANT) {
@@ -483,7 +555,7 @@ export class AuthService {
       action: AUDIT_ACTIONS.USER_CREATE,
       entity: 'User',
       entityId: result.id,
-      metadata: { email: result.email, role: result.role, status: result.status },
+      metadata: { email: result.email, role: result.role, status: result.status, companyId: result.companyId },
     });
 
     return this.adminGetUserById(result.id);

@@ -13,11 +13,13 @@ model User {
   id               String            @id @default(uuid())
   email            String            @unique
   passwordHash     String
-  role             String            @default("APPLICANT") // SUPER_ADMIN, RECRUITER, APPLICANT
+  role             String            @default("APPLICANT") // SUPER_ADMIN, COMPANY, RECRUITER, APPLICANT
   status           String            @default("ACTIVE")    // ACTIVE, SUSPENDED, PENDING
+  companyId        String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  company          Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
   recruiterProfile RecruiterProfile?
   applicantProfile ApplicantProfile?
   notifications    Notification[]
@@ -28,6 +30,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([status])
+  @@index([companyId])
 }
 
 model Company {
@@ -46,6 +49,7 @@ model Company {
 
   recruiters   RecruiterProfile[]
   jobs         Job[]
+  users        User[]
 
   @@index([name])
 }
@@ -148,8 +152,8 @@ model Job {
   responsibilities String           // JSON string or newline-separated
   skills          String            // comma-separated or JSON list
   location        String            // "Remote", "San Francisco, CA", etc.
-  employmentType  String            // "FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP"
-  experienceLevel String            // "ENTRY_LEVEL", "MID_LEVEL", "SENIOR", "LEAD", "EXECUTIVE"
+  employmentType  String            @default("FULL_TIME") // "FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP"
+  experienceLevel String            @default("MID_LEVEL") // "ENTRY_LEVEL", "MID_LEVEL", "SENIOR", "LEAD", "EXECUTIVE"
   salaryMin       Int?
   salaryMax       Int?
   salaryCurrency  String            @default("USD")
@@ -196,7 +200,7 @@ model Application {
 model ApplicationStageHistory {
   id            String      @id @default(uuid())
   applicationId String
-  previousStage String
+  previousStage String?
   newStage      String
   changedById   String
   reason        String?

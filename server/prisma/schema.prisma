@@ -11,6 +11,7 @@ datasource db {
 
 enum Role {
   SUPER_ADMIN
+  COMPANY
   RECRUITER
   APPLICANT
 }
@@ -79,9 +80,11 @@ model User {
   passwordHash     String
   role             Role              @default(APPLICANT)
   status           UserStatus        @default(ACTIVE)
+  companyId        String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  company          Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
   recruiterProfile RecruiterProfile?
   applicantProfile ApplicantProfile?
   notifications    Notification[]
@@ -92,6 +95,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([status])
+  @@index([companyId])
 }
 
 model Company {
@@ -110,6 +114,7 @@ model Company {
 
   recruiters   RecruiterProfile[]
   jobs         Job[]
+  users        User[]
 
   @@index([name])
 }

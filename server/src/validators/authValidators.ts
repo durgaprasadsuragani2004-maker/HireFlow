@@ -51,22 +51,49 @@ export const updateMeSchema = z.object({
 export const adminCreateUserSchema = z.object({
   email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum([ROLES.SUPER_ADMIN, ROLES.RECRUITER, ROLES.APPLICANT], {
-    errorMap: () => ({ message: 'Role must be SUPER_ADMIN, RECRUITER, or APPLICANT' }),
+  role: z.enum([ROLES.SUPER_ADMIN, ROLES.COMPANY, ROLES.RECRUITER, ROLES.APPLICANT], {
+    errorMap: () => ({ message: 'Role must be SUPER_ADMIN, COMPANY, RECRUITER, or APPLICANT' }),
   }),
   status: z.enum([USER_STATUS.ACTIVE, USER_STATUS.SUSPENDED]).optional(),
   fullName: z.string().optional(),
+  companyId: z.string().optional(),
   companyName: z.string().optional(),
   title: z.string().optional(),
+  recruiterProfile: z
+    .object({
+      title: z.string().optional(),
+      department: z.string().optional(),
+      phone: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const adminUpdateUserSchema = z.object({
   email: z.string().email('Please enter a valid email address').toLowerCase().trim().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
-  role: z.enum([ROLES.SUPER_ADMIN, ROLES.RECRUITER, ROLES.APPLICANT]).optional(),
+  role: z.enum([ROLES.SUPER_ADMIN, ROLES.COMPANY, ROLES.RECRUITER, ROLES.APPLICANT]).optional(),
   status: z.enum([USER_STATUS.ACTIVE, USER_STATUS.SUSPENDED]).optional(),
   fullName: z.string().optional(),
+  companyId: z.string().optional(),
   companyName: z.string().optional(),
   title: z.string().optional(),
+  recruiterProfile: z
+    .object({
+      title: z.string().optional(),
+      department: z.string().optional(),
+      phone: z.string().optional(),
+    })
+    .optional(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters long'),
+});
+
+export const provisionCompanyAccountSchema = z.object({
+  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+  companyId: z.string().optional(),
 });
 

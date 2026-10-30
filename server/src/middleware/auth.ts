@@ -38,7 +38,7 @@ export const authenticate = async (
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       include: {
-        recruiterProfile: true,
+        recruiterProfile: { include: { company: true } },
         applicantProfile: true,
         company: true,
       },
@@ -132,7 +132,7 @@ export const optionalAuth = async (
       const payload = verifyAccessToken(token);
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },
-        include: { recruiterProfile: true, applicantProfile: true, company: true },
+        include: { recruiterProfile: { include: { company: true } }, applicantProfile: true, company: true },
       });
       if (user && user.status !== USER_STATUS.SUSPENDED) {
         req.user = {
