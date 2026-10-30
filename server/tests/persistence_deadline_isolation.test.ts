@@ -74,6 +74,10 @@ describe('HireFlow — Persistence, Deadline Validation, Company Isolation, and 
     const jB = await prisma.job.findFirst({ where: { companyId: companyBId } });
     jobAId = jA!.id;
     jobBId = jB!.id;
+
+    // Refresh createdAt so both test jobs appear at the top of paginated listings
+    await prisma.job.update({ where: { id: jobAId }, data: { createdAt: new Date() } });
+    await prisma.job.update({ where: { id: jobBId }, data: { createdAt: new Date() } });
   });
 
   // =========================================================================

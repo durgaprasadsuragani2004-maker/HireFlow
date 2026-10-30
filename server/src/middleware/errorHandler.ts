@@ -20,10 +20,11 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  logger.error('Unhandled Application Error:', err);
-
-  // AppError instance
+  // AppError instance (known domain/operational error)
   if (err instanceof AppError) {
+    if (process.env.NODE_ENV === 'development') {
+      logger.warn(`Operational Error (${err.statusCode}): ${err.message}`);
+    }
     sendError(res, err.message, err.statusCode, err.errors);
     return;
   }
@@ -50,6 +51,9 @@ export const errorHandler = (
     sendError(res, 'Requested resource was not found', 404);
     return;
   }
+
+  // Only log genuinely unhandled / internal server errors
+  logger.error('Unhandled Application Error:', err);
 
   // Default server error
   const message =
