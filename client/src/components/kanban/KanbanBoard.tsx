@@ -102,7 +102,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       return;
     }
 
-
     // Optimistically update frontend columns
     const updatedSource = columns[sourceStage].filter((a) => a.id !== applicationId);
     const updatedCandidate = { ...candidateApp, currentStage: targetStage };
@@ -142,7 +141,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-6 pt-2">
+        <div className="flex gap-4 overflow-x-auto pb-6 pt-2 select-none scrollbar-thin">
           {STAGES.map((stage) => (
             <KanbanColumn
               key={stage}
@@ -157,7 +156,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
         <DragOverlay>
           {activeCard ? (
-            <div className="w-72 shadow-2xl rotate-2">
+            <div className="w-72 sm:w-80 shadow-dropdown rotate-1 scale-[1.02] opacity-95">
               <KanbanCard
                 application={activeCard}
                 onViewDetails={() => {}}

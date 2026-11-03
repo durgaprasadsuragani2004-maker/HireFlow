@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 import { useAuth } from '../../providers/AuthContext';
 import { useToast } from '../../providers/ToastContext';
-import { FileText, CheckCircle2 } from 'lucide-react';
+import { FileText, CheckCircle2, Building2, MapPin } from 'lucide-react';
 
 interface ApplyModalProps {
   isOpen: boolean;
@@ -44,7 +44,7 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({
         coverLetter,
       });
       if (res.data.success) {
-        showToast(`Application submitted for ${job.title}!`, 'success');
+        showToast(`Application submitted successfully for ${job.title}!`, 'success');
         onSuccess?.();
         onClose();
       }
@@ -60,51 +60,72 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Apply for: ${job.title}`}
+      title="Submit Application"
+      description={`Applying for ${job.title}`}
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200">
-          <div className="font-semibold">{job.company?.name}</div>
-          <div className="mt-0.5">{job.location} • {job.employmentType?.replace('_', ' ')}</div>
+        {/* Job Summary Pill */}
+        <div className="p-3.5 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-xs text-[#F1F5F9]">
+          <div className="flex items-center gap-1.5 font-bold text-[#F1F5F9]">
+            <Building2 className="w-4 h-4 text-indigo-400" />
+            <span>{job.company?.name || 'HireFlow Partner'}</span>
+          </div>
+          <div className="flex items-center gap-2 text-[#A1AEC2] mt-1">
+            <MapPin className="w-3.5 h-3.5 text-[#64748B]" />
+            <span>{job.location}</span>
+            <span>•</span>
+            <span>{job.employmentType?.replace('_', ' ')}</span>
+          </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Applicant Profile
+          <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            Candidate Profile
           </label>
-          <div className="text-xs p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div className="text-xs p-3.5 bg-[#101726] rounded-2xl border border-[#2B3950] flex items-center justify-between">
             <div>
-              <div className="font-semibold text-slate-900 dark:text-white">
+              <div className="font-bold text-[#F1F5F9]">
                 {user?.applicantProfile?.fullName || user?.email}
               </div>
-              <div className="text-slate-500">{user?.email}</div>
+              <div className="text-[#64748B] text-[11px] mt-0.5 font-mono">{user?.email}</div>
             </div>
-            <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Ready
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-emerald-500/15 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Verified
             </span>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Cover Note / Message to Recruiter (Optional)
+          <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            Cover Letter / Application Note (Optional)
           </label>
           <textarea
             rows={4}
             value={coverLetter}
             onChange={(e) => setCoverLetter(e.target.value)}
-            placeholder="Briefly introduce your background and highlight why you are a strong match for this role..."
-            className="w-full p-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Share why you are an ideal fit for this role, relevant achievements, or availability..."
+            className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed"
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+          >
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm" loading={loading}>
-            Submit Application
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            loading={loading}
+            disabled={loading}
+          >
+            Confirm & Apply
           </Button>
         </div>
       </form>

@@ -3,35 +3,83 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 241, 245, 249;
+  --background-start-rgb: 11, 17, 32;
+  --background-end-rgb: 8, 13, 25;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: #F1F5F9;
+  background-color: #0B1120;
   min-height: 100vh;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom modern scrollbars */
+/* Custom dark modern scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #080D19;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #2B3950;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #3E506D;
+}
+
+/* Accessible focus ring utility */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 focus-visible:border-indigo-500 transition-all duration-150;
+}
+
+/* Interactive card hover with subtle 2px lift */
+.card-hover, .card-lift {
+  @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover hover:border-indigo-500/40 active:translate-y-0;
+}
+
+/* Interactive button active press response */
+.btn-press {
+  @apply active:scale-[0.98] active:translate-y-0 transition-transform duration-100;
+}
+
+/* Interactive list item / menu hover */
+.interactive-hover {
+  @apply transition-colors duration-150 hover:bg-[#1C2940] hover:text-[#F1F5F9];
+}
+
+/* Interactive icon button */
+.icon-btn {
+  @apply transition-all duration-150 rounded-xl hover:bg-[#1C2940] hover:text-[#F1F5F9] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60;
+}
+
+/* Interactive navigation link */
+.nav-link-interactive {
+  @apply transition-all duration-150 rounded-xl hover:bg-[#151F32] hover:text-[#F1F5F9] active:scale-[0.99];
+}
+
+/* Table row hover */
+.table-row-hover {
+  @apply transition-colors duration-150 hover:bg-[#151F32]/80;
+}
+
+/* Form input / select hover state */
+.input-interactive {
+  @apply transition-colors duration-150 hover:border-[#3E506D] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

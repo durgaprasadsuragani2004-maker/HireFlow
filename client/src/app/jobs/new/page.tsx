@@ -7,7 +7,7 @@ import { useAuth } from '../../../providers/AuthContext';
 import { useToast } from '../../../providers/ToastContext';
 import { Button } from '../../../components/ui/Button';
 import { AuthGuard } from '../../../components/layout/AuthGuard';
-import { ArrowLeft, Home, Building, UserCheck, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Home, Building, UserCheck, AlertCircle, Building2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NewJobPage() {
@@ -16,9 +16,11 @@ export default function NewJobPage() {
   const { showToast } = useToast();
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isCompany = user?.role === 'COMPANY';
 
-  // Company and Recruiter state (for Super Admin)
+  // Company and Recruiter state (for Super Admin & Company)
   const [companies, setCompanies] = useState<any[]>([]);
+  const [companyRecruiters, setCompanyRecruiters] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedRecruiterId, setSelectedRecruiterId] = useState('');
   const [loadingCompanies, setLoadingCompanies] = useState(false);
@@ -65,10 +67,29 @@ export default function NewJobPage() {
         .finally(() => {
           setLoadingCompanies(false);
         });
+    } else if (isCompany) {
+      setLoadingCompanies(true);
+      api
+        .get('/companies')
+        .then((res) => {
+          if (res.data.success && res.data.data) {
+            const c = res.data.data;
+            const recs = c.recruiters || [];
+            setCompanyRecruiters(recs);
+            if (recs.length > 0) {
+              setSelectedRecruiterId(recs[0].id);
+            }
+          }
+        })
+        .catch(() => {
+          showToast('Failed to load company recruiter profile', 'error');
+        })
+        .finally(() => {
+          setLoadingCompanies(false);
+        });
     }
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, isCompany]);
 
-  // Update recruiter options when selected company changes
   const currentCompany = companies.find((c) => c.id === selectedCompanyId);
   const availableRecruiters = currentCompany?.recruiters || [];
 
@@ -84,14 +105,16 @@ export default function NewJobPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || (user.role !== 'RECRUITER' && user.role !== 'SUPER_ADMIN')) {
+    if (
+      !user ||
+      (user.role !== 'RECRUITER' && user.role !== 'COMPANY' && user.role !== 'SUPER_ADMIN')
+    ) {
       showToast('Only authorized recruiters and administrators can create job postings', 'error');
       return;
     }
 
     setFieldErrors({});
 
-    // Client-side quick checks
     const localErrors: Record<string, string> = {};
     if (!title.trim()) localErrors.title = 'Job title is required';
     if (!description.trim() || description.trim().length < 20) {
@@ -110,8 +133,26 @@ export default function NewJobPage() {
       localErrors.salaryMin = 'Minimum salary cannot exceed maximum salary';
     }
 
-    if (isSuperAdmin && !selectedCompanyId) {
-      localErrors.companyId = 'Please select a company for this job post';
+    // Deadline validation: reject dates earlier than today
+    if (deadline) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (deadline < todayStr) {
+        localErrors.deadline = 'Application deadline cannot be in the past.';
+      }
+    }
+
+    // HR assignment validations
+    if (isSuperAdmin) {
+      if (!selectedCompanyId) {
+        localErrors.companyId = 'Please select a company for this job post';
+      }
+      if (status === 'PUBLISHED' && (!selectedRecruiterId || availableRecruiters.length === 0)) {
+        localErrors.recruiterId = 'HR/Recruiter required — this company has no eligible HR accounts.';
+      }
+    } else if (isCompany) {
+      if (status === 'PUBLISHED' && (!selectedRecruiterId || companyRecruiters.length === 0)) {
+        localErrors.recruiterId = 'HR/Recruiter required — this company has no eligible HR accounts.';
+      }
     }
 
     if (Object.keys(localErrors).length > 0) {
@@ -134,7 +175,7 @@ export default function NewJobPage() {
         salaryMin: salaryMin === '' ? null : Number(salaryMin),
         salaryMax: salaryMax === '' ? null : Number(salaryMax),
         status,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
+        deadline: deadline ? (deadline.includes('T') ? deadline : `${deadline}T23:59:59.999Z`) : null,
       };
 
       if (isSuperAdmin) {
@@ -142,13 +183,14 @@ export default function NewJobPage() {
         if (selectedRecruiterId) {
           payload.recruiterId = selectedRecruiterId;
         }
+      } else if (isCompany && selectedRecruiterId) {
+        payload.recruiterId = selectedRecruiterId;
       }
 
       const res = await api.post('/jobs', payload);
-
       if (res.data.success) {
-        showToast('Job posting created successfully!', 'success');
-        router.push(`/applications/kanban/${res.data.data.id}`);
+        showToast('Job posting published successfully!', 'success');
+        router.push(`/jobs/${res.data.data.id}`);
       }
     } catch (err: any) {
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
@@ -167,66 +209,69 @@ export default function NewJobPage() {
     }
   };
 
+  const companyDisplayName =
+    user?.company?.name || user?.recruiterProfile?.companyName || 'Your Organization';
+
   return (
-    <AuthGuard allowedRoles={['SUPER_ADMIN', 'RECRUITER']}>
-      <div className="max-w-3xl mx-auto py-4 space-y-6">
+    <AuthGuard allowedRoles={['SUPER_ADMIN', 'COMPANY', 'RECRUITER']}>
+      <div className="max-w-3xl mx-auto py-2 space-y-6">
         {/* Breadcrumb Navigation */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-500">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#A1AEC2]">
           <Link
             href="/"
-            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-1 hover:text-indigo-400 transition-colors"
           >
             <Home className="w-3.5 h-3.5" />
             <span>Home</span>
           </Link>
-          <span className="text-slate-400">/</span>
-          <Link href="/jobs" className="hover:text-blue-600 transition-colors">
+          <span className="text-[#64748B]">/</span>
+          <Link href="/jobs" className="hover:text-indigo-400 transition-colors">
             Job Postings
           </Link>
-          <span className="text-slate-400">/</span>
-          <span className="text-slate-800 dark:text-slate-200 font-semibold">New Job</span>
+          <span className="text-[#64748B]">/</span>
+          <span className="text-[#F1F5F9] font-semibold">New Job</span>
         </nav>
 
         {/* Page Title & Back */}
         <div className="flex items-center gap-3">
           <Link
             href="/jobs"
-            className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 text-[#A1AEC2] hover:text-[#F1F5F9] rounded-xl hover:bg-[#151F32] transition-colors"
             title="Back to Job Listings"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-[#F1F5F9] tracking-tight">
               Create New Job Posting
             </h1>
-            <p className="text-xs text-slate-500">
-              Configure job parameters, salary, requirements, and assign recruiter pipeline.
+            <p className="text-xs text-[#A1AEC2] mt-0.5">
+              Configure parameters, compensation range, requirements, and initialize the Kanban pipeline.
             </p>
           </div>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5"
+          className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 sm:p-8 shadow-card space-y-5"
         >
-          {/* Company & Recruiter Assignment Section (Super Admin or Recruiter Info) */}
+          {/* Company & Recruiter Assignment Section */}
           {isSuperAdmin ? (
-            <div className="p-4 bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/50 rounded-2xl space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-purple-900 dark:text-purple-300">
-                <Building className="w-4 h-4 text-purple-600" />
-                <span>Super Admin Assignment Controls</span>
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                <Building className="w-4 h-4 text-indigo-400" />
+                <span>Super Admin Organization Assignment</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block font-semibold text-[#A1AEC2] mb-1">
                     Select Company *
                   </label>
                   <select
                     value={selectedCompanyId}
                     onChange={(e) => handleCompanyChange(e.target.value)}
                     disabled={loadingCompanies}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
                   >
                     {companies.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -235,19 +280,19 @@ export default function NewJobPage() {
                     ))}
                   </select>
                   {fieldErrors.companyId && (
-                    <p className="text-xs text-rose-500 mt-1">{fieldErrors.companyId}</p>
+                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.companyId}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Assign Recruiter *
+                  <label className="block font-semibold text-[#A1AEC2] mb-1">
+                    Assign HR / Recruiter Lead *
                   </label>
                   <select
                     value={selectedRecruiterId}
                     onChange={(e) => setSelectedRecruiterId(e.target.value)}
                     disabled={loadingCompanies || availableRecruiters.length === 0}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-60"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all disabled:opacity-60"
                   >
                     {availableRecruiters.length === 0 ? (
                       <option value="">No recruiters linked to this company</option>
@@ -259,24 +304,81 @@ export default function NewJobPage() {
                       ))
                     )}
                   </select>
-                  {availableRecruiters.length === 0 && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                      ⚠️ This company has no recruiter account yet. The job will be linked to the company.
-                    </p>
-                  )}
                   {fieldErrors.recruiterId && (
-                    <p className="text-xs text-rose-500 mt-1">{fieldErrors.recruiterId}</p>
+                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.recruiterId}</p>
                   )}
                 </div>
               </div>
+
+              {availableRecruiters.length === 0 && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-300">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>HR/Recruiter required — this company has no eligible HR accounts.</span>
+                  </div>
+                  <Link
+                    href="/admin/users"
+                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg font-semibold transition self-start sm:self-auto"
+                  >
+                    Create HR Account
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : isCompany ? (
+            <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-teal-300">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-teal-400" />
+                  <span>Publishing for Organization: <strong className="text-[#F1F5F9]">{companyDisplayName}</strong></span>
+                </div>
+                <Link href="/admin/users" className="text-xs text-teal-400 hover:underline">
+                  Manage HR Team
+                </Link>
+              </div>
+
+              {companyRecruiters.length === 0 ? (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-300">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>HR/Recruiter required — this company has no eligible HR accounts.</span>
+                  </div>
+                  <Link
+                    href="/admin/users"
+                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg font-semibold transition self-start sm:self-auto"
+                  >
+                    Create HR Account
+                  </Link>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1">
+                    Assign HR / Recruiter Lead *
+                  </label>
+                  <select
+                    value={selectedRecruiterId}
+                    onChange={(e) => setSelectedRecruiterId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 text-xs"
+                  >
+                    {companyRecruiters.map((r: any) => (
+                      <option key={r.id} value={r.id}>
+                        {r.user?.email} ({r.title || 'Recruiter'})
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.recruiterId && (
+                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.recruiterId}</p>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-300">
-              <UserCheck className="w-4 h-4 text-blue-500" />
+            <div className="flex items-center gap-2 p-3.5 bg-teal-500/10 border border-teal-500/20 rounded-2xl text-xs text-teal-300 font-medium">
+              <Building2 className="w-4 h-4 text-teal-400 shrink-0" />
               <span>
-                Publishing on behalf of your authorized company:{' '}
-                <strong className="text-slate-900 dark:text-white font-semibold">
-                  {user?.recruiterProfile?.companyId ? 'Your Organization' : 'HireFlow Partner'}
+                Publishing for authorized organization:{' '}
+                <strong className="text-[#F1F5F9] font-bold">
+                  {companyDisplayName}
                 </strong>
               </span>
             </div>
@@ -284,7 +386,7 @@ export default function NewJobPage() {
 
           {/* Job Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
               Job Title *
             </label>
             <input
@@ -296,14 +398,12 @@ export default function NewJobPage() {
                 if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
               }}
               placeholder="e.g. Senior Full-Stack Engineer"
-              className={`w-full px-3.5 py-2 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                fieldErrors.title
-                  ? 'border-rose-500 ring-1 ring-rose-500'
-                  : 'border-slate-200 dark:border-slate-700'
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                fieldErrors.title ? 'border-rose-500' : 'border-[#2B3950]'
               }`}
             />
             {fieldErrors.title && (
-              <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+              <p className="text-xs text-rose-400 mt-1 flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{fieldErrors.title}</span>
               </p>
@@ -313,7 +413,7 @@ export default function NewJobPage() {
           {/* Location, Employment Type, Experience Level */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
                 Location *
               </label>
               <input
@@ -325,25 +425,23 @@ export default function NewJobPage() {
                   if (fieldErrors.location) setFieldErrors({ ...fieldErrors, location: '' });
                 }}
                 placeholder="e.g. Remote or San Francisco, CA"
-                className={`w-full px-3.5 py-2 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  fieldErrors.location
-                    ? 'border-rose-500 ring-1 ring-rose-500'
-                    : 'border-slate-200 dark:border-slate-700'
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                  fieldErrors.location ? 'border-rose-500' : 'border-[#2B3950]'
                 }`}
               />
               {fieldErrors.location && (
-                <p className="text-xs text-rose-500 mt-1">{fieldErrors.location}</p>
+                <p className="text-xs text-rose-400 mt-1">{fieldErrors.location}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
                 Employment Type *
               </label>
               <select
                 value={employmentType}
                 onChange={(e) => setEmploymentType(e.target.value)}
-                className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
               >
                 <option value="FULL_TIME">Full Time</option>
                 <option value="PART_TIME">Part Time</option>
@@ -353,13 +451,13 @@ export default function NewJobPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
                 Experience Level *
               </label>
               <select
                 value={experienceLevel}
                 onChange={(e) => setExperienceLevel(e.target.value)}
-                className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
               >
                 <option value="ENTRY_LEVEL">Entry Level</option>
                 <option value="MID_LEVEL">Mid Level</option>
@@ -373,7 +471,7 @@ export default function NewJobPage() {
           {/* Salary Min, Salary Max, Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
                 Min Salary (USD)
               </label>
               <input
@@ -384,19 +482,17 @@ export default function NewJobPage() {
                   setSalaryMin(e.target.value === '' ? '' : Number(e.target.value));
                   if (fieldErrors.salaryMin) setFieldErrors({ ...fieldErrors, salaryMin: '' });
                 }}
-                className={`w-full px-3.5 py-2 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  fieldErrors.salaryMin
-                    ? 'border-rose-500 ring-1 ring-rose-500'
-                    : 'border-slate-200 dark:border-slate-700'
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                  fieldErrors.salaryMin ? 'border-rose-500' : 'border-[#2B3950]'
                 }`}
               />
               {fieldErrors.salaryMin && (
-                <p className="text-xs text-rose-500 mt-1">{fieldErrors.salaryMin}</p>
+                <p className="text-xs text-rose-400 mt-1">{fieldErrors.salaryMin}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
                 Max Salary (USD)
               </label>
               <input
@@ -407,52 +503,57 @@ export default function NewJobPage() {
                   setSalaryMax(e.target.value === '' ? '' : Number(e.target.value));
                   if (fieldErrors.salaryMax) setFieldErrors({ ...fieldErrors, salaryMax: '' });
                 }}
-                className={`w-full px-3.5 py-2 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  fieldErrors.salaryMax
-                    ? 'border-rose-500 ring-1 ring-rose-500'
-                    : 'border-slate-200 dark:border-slate-700'
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                  fieldErrors.salaryMax ? 'border-rose-500' : 'border-[#2B3950]'
                 }`}
               />
               {fieldErrors.salaryMax && (
-                <p className="text-xs text-rose-500 mt-1">{fieldErrors.salaryMax}</p>
+                <p className="text-xs text-rose-400 mt-1">{fieldErrors.salaryMax}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Initial Status
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                Posting Status *
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
               >
-                <option value="PUBLISHED">Published (Live to Applicants)</option>
+                <option value="PUBLISHED">Published (Accepting Candidates)</option>
                 <option value="DRAFT">Draft</option>
+                <option value="ARCHIVED">Closed / Archived</option>
               </select>
             </div>
           </div>
 
           {/* Application Deadline */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
               Application Deadline (Optional)
             </label>
             <input
               type="date"
+              min={new Date().toISOString().split('T')[0]}
               value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="w-full sm:w-1/2 px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setDeadline(e.target.value);
+                if (fieldErrors.deadline) setFieldErrors({ ...fieldErrors, deadline: '' });
+              }}
+              className={`w-full sm:w-1/2 px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                fieldErrors.deadline ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
             />
-            <span className="text-[11px] text-slate-400 block mt-0.5">
-              Leave blank for ongoing positions with no expiration date.
-            </span>
+            {fieldErrors.deadline && (
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.deadline}</p>
+            )}
           </div>
 
           {/* Required Skills */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Required Skills (comma-separated) *
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Key Skills & Tech Stack * (comma-separated)
             </label>
             <input
               type="text"
@@ -462,104 +563,101 @@ export default function NewJobPage() {
                 setSkills(e.target.value);
                 if (fieldErrors.skills) setFieldErrors({ ...fieldErrors, skills: '' });
               }}
-              placeholder="e.g. React, TypeScript, Node.js, PostgreSQL"
-              className={`w-full px-3.5 py-2 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                fieldErrors.skills
-                  ? 'border-rose-500 ring-1 ring-rose-500'
-                  : 'border-slate-200 dark:border-slate-700'
+              placeholder="e.g. TypeScript, React, Next.js, Node.js, PostgreSQL"
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                fieldErrors.skills ? 'border-rose-500' : 'border-[#2B3950]'
               }`}
             />
             {fieldErrors.skills && (
-              <p className="text-xs text-rose-500 mt-1">{fieldErrors.skills}</p>
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.skills}</p>
             )}
           </div>
 
-          {/* Job Description */}
+          {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Job Description *
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Job Overview & Purpose *
             </label>
             <textarea
-              rows={4}
               required
+              rows={4}
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
                 if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: '' });
               }}
-              placeholder="Overview of the mission, role objectives, and team context (minimum 20 characters)..."
-              className={`w-full p-3 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                fieldErrors.description
-                  ? 'border-rose-500 ring-1 ring-rose-500'
-                  : 'border-slate-200 dark:border-slate-700'
+              placeholder="Provide a comprehensive summary of the team, mission, and scope of this position..."
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
+                fieldErrors.description ? 'border-rose-500' : 'border-[#2B3950]'
               }`}
             />
             {fieldErrors.description && (
-              <p className="text-xs text-rose-500 mt-1">{fieldErrors.description}</p>
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.description}</p>
+            )}
+          </div>
+
+          {/* Responsibilities */}
+          <div>
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Core Responsibilities *
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={responsibilities}
+              onChange={(e) => {
+                setResponsibilities(e.target.value);
+                if (fieldErrors.responsibilities) setFieldErrors({ ...fieldErrors, responsibilities: '' });
+              }}
+              placeholder="Detail the daily obligations, architectural ownership, and expected deliverables..."
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
+                fieldErrors.responsibilities ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
+            />
+            {fieldErrors.responsibilities && (
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.responsibilities}</p>
             )}
           </div>
 
           {/* Requirements */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Requirements *
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Candidate Requirements & Qualifications *
             </label>
             <textarea
-              rows={3}
               required
+              rows={4}
               value={requirements}
               onChange={(e) => {
                 setRequirements(e.target.value);
                 if (fieldErrors.requirements) setFieldErrors({ ...fieldErrors, requirements: '' });
               }}
-              placeholder="• 5+ years of software development experience..."
-              className={`w-full p-3 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                fieldErrors.requirements
-                  ? 'border-rose-500 ring-1 ring-rose-500'
-                  : 'border-slate-200 dark:border-slate-700'
+              placeholder="Specify required experience, education, system design background, and must-have credentials..."
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
+                fieldErrors.requirements ? 'border-rose-500' : 'border-[#2B3950]'
               }`}
             />
             {fieldErrors.requirements && (
-              <p className="text-xs text-rose-500 mt-1">{fieldErrors.requirements}</p>
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.requirements}</p>
             )}
           </div>
 
-          {/* Key Responsibilities */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Key Responsibilities *
-            </label>
-            <textarea
-              rows={3}
-              required
-              value={responsibilities}
-              onChange={(e) => {
-                setResponsibilities(e.target.value);
-                if (fieldErrors.responsibilities)
-                  setFieldErrors({ ...fieldErrors, responsibilities: '' });
-              }}
-              placeholder="• Architect and ship scalable microservices..."
-              className={`w-full p-3 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                fieldErrors.responsibilities
-                  ? 'border-rose-500 ring-1 ring-rose-500'
-                  : 'border-slate-200 dark:border-slate-700'
-              }`}
-            />
-            {fieldErrors.responsibilities && (
-              <p className="text-xs text-rose-500 mt-1">{fieldErrors.responsibilities}</p>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          {/* Form Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2B3950]">
             <Link
               href="/jobs"
-              className="px-4 py-2 text-xs font-semibold border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-[#A1AEC2] hover:text-[#F1F5F9] rounded-xl hover:bg-[#1C2940] transition-colors"
             >
               Cancel
             </Link>
-            <Button type="submit" variant="primary" size="md" loading={loading} disabled={loading}>
-              Create Job & Initialize Pipeline
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              loading={loading}
+              disabled={loading}
+            >
+              Publish Job Posting
             </Button>
           </div>
         </form>

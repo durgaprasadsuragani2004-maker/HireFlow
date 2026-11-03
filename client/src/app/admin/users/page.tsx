@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../providers/AuthContext';
 import { AuthGuard } from '../../../components/layout/AuthGuard';
@@ -25,13 +25,22 @@ import {
   AlertTriangle,
   Building,
   Briefcase,
-  Calendar,
-  Lock,
+  Building2,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
+
+interface CompanyOption {
+  id: string;
+  name: string;
+}
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuth();
   const { showToast } = useToast();
+
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+  const isCompanyUser = currentUser?.role === 'COMPANY';
 
   const [usersList, setUsersList] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -42,27 +51,71 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Companies list for dropdown
+  const [companies, setCompanies] = useState<CompanyOption[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCreateCompanyModalOpen, setIsCreateCompanyModalOpen] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [viewUserDetails, setViewUserDetails] = useState<any | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  // New Company inline creation state
+  const [newCompanyData, setNewCompanyData] = useState({
+    name: '',
+    industry: '',
+    location: '',
+  });
+  const [creatingCompany, setCreatingCompany] = useState(false);
+
   // Form States
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: 'APPLICANT',
+    role: isCompanyUser ? 'RECRUITER' : 'APPLICANT',
     status: 'ACTIVE',
     fullName: '',
+    companyId: '',
     companyName: '',
     title: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Fetch Companies
+  const fetchCompanies = async () => {
+    setLoadingCompanies(true);
+    try {
+      if (isSuperAdmin) {
+        const res = await api.get('/companies/all');
+        if (res.data.success) {
+          setCompanies(res.data.data || []);
+        }
+      } else if (isCompanyUser && currentUser?.companyId) {
+        setCompanies([
+          {
+            id: currentUser.companyId,
+            name: currentUser.company?.name || 'My Organization',
+          },
+        ]);
+      }
+    } catch {
+      // Non-fatal, fallback to empty list
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [currentUser?.role, currentUser?.companyId]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -77,8 +130,8 @@ export default function AdminUsersPage() {
 
       const res = await api.get(`/users?${params.toString()}`);
       if (res.data.success) {
-        setUsersList(res.data.data.users);
-        setTotal(res.data.data.total);
+        setUsersList(res.data.data.users || []);
+        setTotal(res.data.data.total || 0);
       }
     } catch (err: any) {
       showToast(err.response?.data?.message || 'Failed to load user list', 'error');
@@ -91,7 +144,6 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [page, limit, roleFilter, statusFilter]);
 
-  // Handle Search submit / debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1);
@@ -100,15 +152,75 @@ export default function AdminUsersPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Toggle user active / suspended
-  const handleToggleStatus = async (targetUser: any) => {
-    if (targetUser.id === currentUser?.id) {
-      showToast('You cannot suspend your own Super Admin account', 'warning');
-      return;
-    }
-    const newStatus = targetUser.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+  // Filtered companies based on search
+  const filteredCompanies = useMemo(() => {
+    if (!companySearchQuery.trim()) return companies;
+    return companies.filter((c) =>
+      c.name.toLowerCase().includes(companySearchQuery.toLowerCase())
+    );
+  }, [companies, companySearchQuery]);
+
+  // Handle Open Add User Modal
+  const handleOpenAddModal = () => {
+    setFormData({
+      email: '',
+      password: '',
+      role: isCompanyUser ? 'RECRUITER' : 'APPLICANT',
+      status: 'ACTIVE',
+      fullName: '',
+      companyId: isCompanyUser ? (currentUser?.companyId || '') : '',
+      companyName: isCompanyUser ? (currentUser?.company?.name || '') : '',
+      title: '',
+    });
+    setCompanySearchQuery('');
+    setIsCompanyDropdownOpen(false);
+    setIsAddModalOpen(true);
+  };
+
+  // Handle Open Edit User Modal
+  const handleOpenEditModal = (user: any) => {
+    setSelectedUser(user);
+    const existingCompanyId = user.companyId || user.recruiterProfile?.companyId || '';
+    const existingCompanyName =
+      user.company?.name || user.recruiterProfile?.company?.name || user.recruiterProfile?.companyName || '';
+
+    setFormData({
+      email: user.email,
+      password: '',
+      role: user.role,
+      status: user.status,
+      fullName: user.applicantProfile?.fullName || '',
+      companyId: existingCompanyId,
+      companyName: existingCompanyName,
+      title: user.recruiterProfile?.title || '',
+    });
+    setCompanySearchQuery('');
+    setIsCompanyDropdownOpen(false);
+    setIsEditModalOpen(true);
+  };
+
+  // Handle View User Details Modal
+  const handleOpenViewModal = async (user: any) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
+    setLoadingDetails(true);
     try {
-      await api.patch(`/users/${targetUser.id}/status`, { status: newStatus });
+      const res = await api.get(`/users/${user.id}`);
+      if (res.data.success) {
+        setViewUserDetails(res.data.data);
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to fetch user telemetry', 'error');
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  // Handle Toggle Active/Suspended Status
+  const handleToggleStatus = async (user: any) => {
+    const newStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    try {
+      await api.patch(`/users/${user.id}/status`, { status: newStatus });
       showToast(`User status updated to ${newStatus}`, 'success');
       fetchUsers();
     } catch (err: any) {
@@ -116,59 +228,14 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Open View Details Modal
-  const handleOpenViewModal = async (u: any) => {
-    setSelectedUser(u);
-    setIsViewModalOpen(true);
-    setLoadingDetails(true);
-    try {
-      const res = await api.get(`/users/${u.id}`);
-      if (res.data.success) {
-        setViewUserDetails(res.data.data);
-      }
-    } catch {
-      setViewUserDetails(u);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  // Open Edit Modal
-  const handleOpenEditModal = (u: any) => {
-    setSelectedUser(u);
-    setFormData({
-      email: u.email || '',
-      password: '',
-      role: u.role || 'APPLICANT',
-      status: u.status || 'ACTIVE',
-      fullName: u.applicantProfile?.fullName || '',
-      companyName: u.recruiterProfile?.company?.name || '',
-      title: u.recruiterProfile?.title || '',
-    });
-    setIsEditModalOpen(true);
-  };
-
-  // Open Add Modal
-  const handleOpenAddModal = () => {
-    setFormData({
-      email: '',
-      password: '',
-      role: 'APPLICANT',
-      status: 'ACTIVE',
-      fullName: '',
-      companyName: '',
-      title: '',
-    });
-    setIsAddModalOpen(true);
-  };
-
-  // Handle Create User Submit
-  const handleCreateUser = async (e: React.FormEvent) => {
+  // Submit Create User
+  const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email || !formData.password) {
-      showToast('Email and password are required', 'warning');
+    if ((formData.role === 'COMPANY' || formData.role === 'RECRUITER') && !formData.companyId) {
+      showToast('Please select an organization from the dropdown', 'error');
       return;
     }
+
     setSubmitting(true);
     try {
       const payload: any = {
@@ -177,12 +244,19 @@ export default function AdminUsersPage() {
         role: formData.role,
         status: formData.status,
       };
-      if (formData.fullName) payload.fullName = formData.fullName;
-      if (formData.companyName) payload.companyName = formData.companyName;
-      if (formData.title) payload.title = formData.title;
+
+      if (formData.role === 'APPLICANT' && formData.fullName) {
+        payload.fullName = formData.fullName;
+      } else if (formData.role === 'RECRUITER') {
+        payload.companyId = formData.companyId;
+        payload.companyName = formData.companyName;
+        if (formData.title) payload.title = formData.title;
+      } else if (formData.role === 'COMPANY') {
+        payload.companyId = formData.companyId;
+      }
 
       await api.post('/users', payload);
-      showToast('User created successfully', 'success');
+      showToast('User account created successfully', 'success');
       setIsAddModalOpen(false);
       fetchUsers();
     } catch (err: any) {
@@ -192,8 +266,8 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Handle Edit User Submit
-  const handleUpdateUser = async (e: React.FormEvent) => {
+  // Submit Edit User
+  const handleSubmitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
     setSubmitting(true);
@@ -209,10 +283,12 @@ export default function AdminUsersPage() {
       if (formData.role === 'APPLICANT' && formData.fullName) {
         payload.fullName = formData.fullName;
       } else if (formData.role === 'RECRUITER') {
+        if (formData.companyId) payload.companyId = formData.companyId;
         if (formData.companyName) payload.companyName = formData.companyName;
         if (formData.title) payload.title = formData.title;
+      } else if (formData.role === 'COMPANY') {
+        if (formData.companyId) payload.companyId = formData.companyId;
       }
-      // For SUPER_ADMIN: explicitly avoid attaching company or applicant fields
 
       await api.patch(`/users/${selectedUser.id}`, payload);
       showToast('User account updated successfully', 'success');
@@ -222,6 +298,32 @@ export default function AdminUsersPage() {
       showToast(err.response?.data?.message || 'Failed to update user', 'error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Handle Create Organization inline
+  const handleCreateCompanyInline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCompanyData.name.trim()) return;
+    setCreatingCompany(true);
+    try {
+      const res = await api.post('/companies', newCompanyData);
+      if (res.data.success) {
+        const created = res.data.data;
+        showToast('Company registered successfully', 'success');
+        setCompanies((prev) => [created, ...prev]);
+        setFormData((prev) => ({
+          ...prev,
+          companyId: created.id,
+          companyName: created.name,
+        }));
+        setIsCreateCompanyModalOpen(false);
+        setNewCompanyData({ name: '', industry: '', location: '' });
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to create company', 'error');
+    } finally {
+      setCreatingCompany(false);
     }
   };
 
@@ -250,7 +352,7 @@ export default function AdminUsersPage() {
     setSubmitting(true);
     try {
       await api.patch(`/users/${selectedUser.id}/status`, { status: 'SUSPENDED' });
-      showToast('User account safely suspended (all historical data preserved)', 'success');
+      showToast('User account safely suspended (historical records preserved)', 'success');
       setIsDeleteModalOpen(false);
       fetchUsers();
     } catch (err: any) {
@@ -263,58 +365,67 @@ export default function AdminUsersPage() {
   const totalPages = Math.ceil(total / limit) || 1;
 
   return (
-    <AuthGuard allowedRoles={['SUPER_ADMIN']}>
-      <div className="space-y-6 max-w-6xl mx-auto py-2">
+    <AuthGuard allowedRoles={['SUPER_ADMIN', 'COMPANY']}>
+      <div className="space-y-6 max-w-7xl mx-auto py-2">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <Users className="w-6 h-6 text-indigo-600" />
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                User Management
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <Users className="w-5 h-5" />
+              </div>
+              <h1 className="text-2xl font-bold text-[#F1F5F9] tracking-tight">
+                {isCompanyUser ? 'Team & Recruiter Management' : 'User Management'}
               </h1>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Administer ecosystem accounts, roles, profiles, and access authorization.
+            <p className="text-xs text-[#A1AEC2] mt-1 ml-11.5">
+              {isCompanyUser
+                ? `Manage verified recruiters and talent partners for ${currentUser?.company?.name || 'your company'}.`
+                : 'Administer enterprise ecosystem accounts, role hierarchies, and organization access.'}
             </p>
           </div>
 
           <Button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 self-start sm:self-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm text-xs font-bold py-2 px-4"
+            variant="primary"
+            size="md"
+            className="flex items-center gap-2 self-start sm:self-auto"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Add New User</span>
+            <span>{isCompanyUser ? 'Add Team Recruiter' : 'Add New User'}</span>
           </Button>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-3">
+        <div className="bg-[#151F32] border border-[#2B3950] rounded-2xl p-4 shadow-card flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#64748B]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, email, company, or title..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Roles</option>
-              <option value="SUPER_ADMIN">Super Admin</option>
-              <option value="RECRUITER">Recruiter</option>
-              <option value="APPLICANT">Applicant</option>
-            </select>
+            {isSuperAdmin && (
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+              >
+                <option value="">All Roles</option>
+                <option value="SUPER_ADMIN">Super Admin</option>
+                <option value="COMPANY">Company Account</option>
+                <option value="RECRUITER">Recruiter</option>
+                <option value="APPLICANT">Applicant</option>
+              </select>
+            )}
 
             <select
               value={statusFilter}
@@ -322,7 +433,7 @@ export default function AdminUsersPage() {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
             >
               <option value="">All Statuses</option>
               <option value="ACTIVE">Active</option>
@@ -335,7 +446,7 @@ export default function AdminUsersPage() {
                 setLimit(Number(e.target.value));
                 setPage(1);
               }}
-              className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
             >
               <option value={10}>10 / page</option>
               <option value={15}>15 / page</option>
@@ -346,23 +457,23 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+        <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl overflow-hidden shadow-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold">
+              <thead className="bg-[#101726] border-b border-[#2B3950] text-[#A1AEC2] font-bold uppercase tracking-wider text-[11px]">
                 <tr>
-                  <th className="py-3 px-4">User & Email</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Profile / Affiliation</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Registered</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3.5 px-5">User & Email</th>
+                  <th className="py-3.5 px-4">Role</th>
+                  <th className="py-3.5 px-4">Profile Affiliation</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Registered</th>
+                  <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-[#2B3950]">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <td colSpan={6} className="py-12 text-center text-[#A1AEC2]">
                       <div className="max-w-xs mx-auto space-y-2">
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4 mx-auto" />
@@ -371,7 +482,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ) : usersList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <td colSpan={6} className="py-12 text-center text-[#A1AEC2]">
                       No accounts found matching your filters.
                     </td>
                   </tr>
@@ -380,21 +491,22 @@ export default function AdminUsersPage() {
                     const isSelf = u.id === currentUser?.id;
                     const displayName =
                       u.applicantProfile?.fullName ||
+                      u.company?.name ||
                       u.recruiterProfile?.company?.name ||
                       u.email.split('@')[0];
 
                     return (
-                      <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                        <td className="py-3.5 px-4">
-                          <div className="font-semibold text-slate-900 dark:text-white">
+                      <tr key={u.id} className="hover:bg-[#1B273F] transition-colors">
+                        <td className="py-3.5 px-5">
+                          <div className="font-bold text-[#F1F5F9]">
                             {displayName}
                             {isSelf && (
-                              <span className="ml-2 text-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 px-1.5 py-0.5 rounded-md font-bold">
+                              <span className="ml-2 text-[10px] bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 px-1.5 py-0.5 rounded-md font-bold">
                                 You
                               </span>
                             )}
                           </div>
-                          <div className="text-slate-500 text-[11px] font-mono mt-0.5">
+                          <div className="text-[#A1AEC2] text-[11px] font-mono mt-0.5">
                             {u.email}
                           </div>
                         </td>
@@ -404,36 +516,51 @@ export default function AdminUsersPage() {
                             variant={
                               u.role === 'SUPER_ADMIN'
                                 ? 'purple'
-                                : u.role === 'RECRUITER'
+                                : u.role === 'COMPANY'
                                 ? 'info'
+                                : u.role === 'RECRUITER'
+                                ? 'primary'
                                 : 'default'
                             }
                           >
-                            {u.role}
+                            {u.role.replace('_', ' ')}
                           </Badge>
                         </td>
 
-                        <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
-                          {u.role === 'RECRUITER' ? (
+                        <td className="py-3.5 px-4 text-[#A1AEC2]">
+                          {u.role === 'COMPANY' ? (
                             <div>
-                              <span className="font-semibold">{u.recruiterProfile?.company?.name || 'Partner Company'}</span>
+                              <span className="font-semibold text-[#F1F5F9]">
+                                {u.company?.name || 'Assigned Organization'}
+                              </span>
+                              <span className="text-[11px] text-[#64748B] block mt-0.5">
+                                Enterprise Account
+                              </span>
+                            </div>
+                          ) : u.role === 'RECRUITER' ? (
+                            <div>
+                              <span className="font-semibold text-[#F1F5F9]">
+                                {u.recruiterProfile?.company?.name || u.company?.name || 'Partner Company'}
+                              </span>
                               {u.recruiterProfile?.title && (
-                                <span className="text-[11px] text-slate-400 block">
+                                <span className="text-[11px] text-[#64748B] block mt-0.5">
                                   {u.recruiterProfile.title}
                                 </span>
                               )}
                             </div>
                           ) : u.role === 'APPLICANT' ? (
                             <div>
-                              <span>{u.applicantProfile?.fullName || 'Candidate'}</span>
+                              <span className="font-semibold text-[#F1F5F9]">
+                                {u.applicantProfile?.fullName || 'Candidate'}
+                              </span>
                               {u.applicantProfile?.headline && (
-                                <span className="text-[11px] text-slate-400 block truncate max-w-xs">
+                                <span className="text-[11px] text-[#64748B] block truncate max-w-xs mt-0.5">
                                   {u.applicantProfile.headline}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-400">System Administrator</span>
+                            <span className="text-[#64748B] font-medium">System Administrator</span>
                           )}
                         </td>
 
@@ -443,38 +570,35 @@ export default function AdminUsersPage() {
                           </Badge>
                         </td>
 
-                        <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                        <td className="py-3.5 px-4 text-[#A1AEC2] text-[11px]">
                           {formatDate(u.createdAt)}
                         </td>
 
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {/* View Details */}
                             <button
                               onClick={() => handleOpenViewModal(u)}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors"
+                              className="p-1.5 text-[#A1AEC2] hover:text-indigo-400 hover:bg-[#1C2940] rounded-lg transition-colors"
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
 
-                            {/* Edit */}
                             <button
                               onClick={() => handleOpenEditModal(u)}
-                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors"
+                              className="p-1.5 text-[#A1AEC2] hover:text-indigo-400 hover:bg-[#1C2940] rounded-lg transition-colors"
                               title="Edit User"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
 
-                            {/* Suspend / Activate */}
                             {!isSelf && (
                               <button
                                 onClick={() => handleToggleStatus(u)}
                                 className={`p-1.5 rounded-lg transition-colors ${
                                   u.status === 'ACTIVE'
-                                    ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                                    : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                    ? 'text-amber-400 hover:bg-[#1C2940]'
+                                    : 'text-emerald-400 hover:bg-[#1C2940]'
                                 }`}
                                 title={u.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
                               >
@@ -486,14 +610,13 @@ export default function AdminUsersPage() {
                               </button>
                             )}
 
-                            {/* Delete */}
-                            {!isSelf && (
+                            {!isSelf && isSuperAdmin && (
                               <button
                                 onClick={() => {
                                   setSelectedUser(u);
                                   setIsDeleteModalOpen(true);
                                 }}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                                className="p-1.5 text-[#A1AEC2] hover:text-rose-400 hover:bg-[#1C2940] rounded-lg transition-colors"
                                 title="Delete or Deactivate User"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -509,458 +632,671 @@ export default function AdminUsersPage() {
             </table>
           </div>
 
-          {/* Pagination Footer */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500">
-            <div>
-              Showing <span className="font-semibold text-slate-900 dark:text-white">{usersList.length > 0 ? (page - 1) * limit + 1 : 0}</span> to{' '}
-              <span className="font-semibold text-slate-900 dark:text-white">{Math.min(page * limit, total)}</span> of{' '}
-              <span className="font-semibold text-slate-900 dark:text-white">{total}</span> accounts
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-[#2B3950] text-xs text-[#A1AEC2]">
+              <div>
+                Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} accounts
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1 || loading}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+                </Button>
+                <span className="px-3 font-semibold text-[#F1F5F9]">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages || loading}
+                >
+                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
             </div>
-
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1 || loading}
-                className="p-1.5 rounded-lg"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="px-3 py-1 font-semibold text-slate-700 dark:text-slate-300">
-                Page {page} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages || loading}
-                className="p-1.5 rounded-lg"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Modal: Add User */}
-        <Modal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          title="Create New User Account"
-        >
-          <form onSubmit={handleCreateUser} className="space-y-4 text-xs">
-            <div>
-              <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="name@company.com"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Initial Password * (minimum 6 characters)
-              </label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+        {/* Modal: Add New User */}
+        {isAddModalOpen && (
+          <Modal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            title={isCompanyUser ? 'Add Team Recruiter' : 'Create Ecosystem User'}
+            description={
+              isCompanyUser
+                ? `Provision an authorized recruiter login for ${currentUser?.company?.name || 'your company'}.`
+                : 'Provision a new credentialed user account with role-based authorization.'
+            }
+            maxWidth="max-w-lg"
+          >
+            <form onSubmit={handleSubmitAdd} className="space-y-4">
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  System Role *
-                </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="APPLICANT">Applicant</option>
-                  <option value="RECRUITER">Recruiter</option>
-                  <option value="SUPER_ADMIN">Super Admin</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Account Status *
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="ACTIVE">Active</option>
-                  <option value="SUSPENDED">Suspended</option>
-                </select>
-              </div>
-            </div>
-
-            {formData.role === 'APPLICANT' && (
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Full Name
+                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  Email Address *
                 </label>
                 <input
-                  type="text"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="e.g. John Doe"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="user@enterprise.com"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
                 />
               </div>
-            )}
 
-            {formData.role === 'RECRUITER' && (
-              <>
+              <div>
+                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  Initial Password *
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Minimum 6 characters"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Company Name *
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                    Account Role
+                  </label>
+                  {isCompanyUser ? (
+                    <input
+                      type="text"
+                      disabled
+                      value="Recruiter"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                    />
+                  ) : (
+                    <select
+                      value={formData.role}
+                      onChange={(e) => {
+                        const newRole = e.target.value;
+                        setFormData({
+                          ...formData,
+                          role: newRole,
+                          companyId: '',
+                          companyName: '',
+                        });
+                      }}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                    >
+                      <option value="APPLICANT">Candidate / Applicant</option>
+                      <option value="RECRUITER">Company Recruiter</option>
+                      <option value="COMPANY">Company Account (Admin)</option>
+                      <option value="SUPER_ADMIN">Super Administrator</option>
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                    Account Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="SUSPENDED">Suspended</option>
+                  </select>
+                </div>
+              </div>
+
+              {formData.role === 'APPLICANT' && (
+                <div>
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                    Full Name *
                   </label>
                   <input
                     type="text"
                     required
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    placeholder="e.g. TechNova Solutions"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    placeholder="Candidate Name"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
                   />
-                </div>
-
-                <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Job Title / Role
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g. Senior Talent Lead"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </>
-            )}
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddModalOpen(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? 'Creating...' : 'Create Account'}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-
-        {/* Modal: Edit User */}
-        <Modal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          title={`Edit Account: ${selectedUser?.email}`}
-        >
-          <form onSubmit={handleUpdateUser} className="space-y-4 text-xs">
-            <div>
-              <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Email Address
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Reset Password (leave blank to keep current)
-              </label>
-              <input
-                type="password"
-                minLength={6}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Optional new password"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Role
-                </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  disabled={selectedUser?.id === currentUser?.id}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
-                >
-                  <option value="APPLICANT">Applicant</option>
-                  <option value="RECRUITER">Recruiter</option>
-                  <option value="SUPER_ADMIN">Super Admin</option>
-                </select>
-                {selectedUser?.id === currentUser?.id && (
-                  <span className="text-[10px] text-amber-500 mt-0.5 block">
-                    Self-demotion disabled for safety
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  disabled={selectedUser?.id === currentUser?.id}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
-                >
-                  <option value="ACTIVE">Active</option>
-                  <option value="SUSPENDED">Suspended</option>
-                </select>
-              </div>
-            </div>
-
-            {formData.role === 'SUPER_ADMIN' && (
-              <div className="p-3 bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-xl text-xs text-purple-900 dark:text-purple-300 flex items-start gap-2">
-                <Shield className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Super Administrator Account:</strong> Possesses platform-wide administrative privileges. No company assignment or recruiter profile required.
-                </span>
-              </div>
-            )}
-
-            {formData.role === 'APPLICANT' && (
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="e.g. John Doe"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            )}
-
-            {formData.role === 'RECRUITER' && (
-              <>
-                <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    placeholder="e.g. TechNova Solutions"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Recruiter Title
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g. Senior Talent Lead"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </>
-            )}
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditModalOpen(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-
-        {/* Modal: View Details */}
-        <Modal
-          isOpen={isViewModalOpen}
-          onClose={() => setIsViewModalOpen(false)}
-          title="User Account Details"
-        >
-          {loadingDetails ? (
-            <div className="space-y-3 py-4">
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          ) : viewUserDetails ? (
-            <div className="space-y-5 text-xs">
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <div>
-                  <div className="text-base font-bold text-slate-900 dark:text-white">
-                    {viewUserDetails.applicantProfile?.fullName ||
-                      viewUserDetails.recruiterProfile?.company?.name ||
-                      viewUserDetails.email.split('@')[0]}
-                  </div>
-                  <div className="text-slate-500 font-mono mt-0.5">{viewUserDetails.email}</div>
-                  <div className="text-[11px] text-slate-400 mt-1">
-                    ID: <span className="font-mono">{viewUserDetails.id}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-1.5">
-                  <Badge
-                    variant={
-                      viewUserDetails.role === 'SUPER_ADMIN'
-                        ? 'purple'
-                        : viewUserDetails.role === 'RECRUITER'
-                        ? 'info'
-                        : 'default'
-                    }
-                  >
-                    {viewUserDetails.role}
-                  </Badge>
-                  <Badge variant={viewUserDetails.status === 'ACTIVE' ? 'success' : 'danger'}>
-                    {viewUserDetails.status}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Profile Sections */}
-              {viewUserDetails.recruiterProfile && (
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Building className="w-4 h-4 text-blue-500" />
-                    <span>Recruiter Profile</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-300">
-                    <div>
-                      Company: <span className="font-semibold">{viewUserDetails.recruiterProfile.company?.name || 'N/A'}</span>
-                    </div>
-                    <div>
-                      Title: <span className="font-semibold">{viewUserDetails.recruiterProfile.title || 'Recruiter'}</span>
-                    </div>
-                    <div>
-                      Jobs Created: <span className="font-semibold">{viewUserDetails.recruiterProfile._count?.jobs ?? 'N/A'}</span>
-                    </div>
-                  </div>
                 </div>
               )}
 
-              {viewUserDetails.applicantProfile && (
-                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Briefcase className="w-4 h-4 text-emerald-500" />
-                    <span>Applicant Profile</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-300">
-                    <div>
-                      Full Name: <span className="font-semibold">{viewUserDetails.applicantProfile.fullName}</span>
+              {/* Company Selection Dropdown for RECRUITER or COMPANY roles */}
+              {(formData.role === 'RECRUITER' || formData.role === 'COMPANY') && (
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-[#A1AEC2]">
+                        Associated Organization *
+                      </label>
+                      {isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCreateCompanyModalOpen(true)}
+                          className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300"
+                        >
+                          + New Organization
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      Applications Filed: <span className="font-semibold">{viewUserDetails.applicantProfile._count?.applications ?? 0}</span>
-                    </div>
-                    {viewUserDetails.applicantProfile.headline && (
-                      <div className="col-span-2">
-                        Headline: <span className="font-semibold">{viewUserDetails.applicantProfile.headline}</span>
+
+                    {isCompanyUser ? (
+                      <input
+                        type="text"
+                        disabled
+                        value={currentUser?.company?.name || 'Your Organization'}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                          className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        >
+                          <span className={formData.companyId ? 'text-[#F1F5F9]' : 'text-[#64748B]'}>
+                            {formData.companyName || 'Select an organization...'}
+                          </span>
+                          <ChevronsUpDown className="w-4 h-4 text-[#64748B]" />
+                        </button>
+
+                        {isCompanyDropdownOpen && (
+                          <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1C2940] border border-[#2B3950] rounded-xl shadow-dropdown overflow-hidden max-h-56 flex flex-col">
+                            <div className="p-2 border-b border-[#2B3950]">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={companySearchQuery}
+                                onChange={(e) => setCompanySearchQuery(e.target.value)}
+                                placeholder="Search companies..."
+                                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:border-indigo-500"
+                              />
+                            </div>
+                            <div className="overflow-y-auto divide-y divide-[#2B3950]/50">
+                              {loadingCompanies ? (
+                                <div className="p-3 text-center text-xs text-[#64748B]">Loading companies...</div>
+                              ) : filteredCompanies.length === 0 ? (
+                                <div className="p-3 text-center text-xs text-[#64748B]">
+                                  No companies found.{' '}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsCompanyDropdownOpen(false);
+                                      setIsCreateCompanyModalOpen(true);
+                                    }}
+                                    className="text-indigo-400 underline font-medium"
+                                  >
+                                    Create one now
+                                  </button>
+                                </div>
+                              ) : (
+                                filteredCompanies.map((c) => (
+                                  <button
+                                    type="button"
+                                    key={c.id}
+                                    onClick={() => {
+                                      setFormData({
+                                        ...formData,
+                                        companyId: c.id,
+                                        companyName: c.name,
+                                      });
+                                      setIsCompanyDropdownOpen(false);
+                                    }}
+                                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-left text-[#F1F5F9] hover:bg-[#1E2D47] transition-colors"
+                                  >
+                                    <span className="font-medium">{c.name}</span>
+                                    {formData.companyId === c.id && (
+                                      <Check className="w-4 h-4 text-indigo-400" />
+                                    )}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
+
+                  {formData.role === 'RECRUITER' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                        Recruiter Title
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="e.g. Lead Technical Recruiter"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Timestamps & Audit */}
-              <div className="flex items-center justify-between text-slate-400 text-[11px] pt-2 border-t border-slate-100 dark:border-slate-800">
-                <span>Created: {formatDate(viewUserDetails.createdAt)}</span>
-                {viewUserDetails.updatedAt && (
-                  <span>Last Updated: {formatDate(viewUserDetails.updatedAt)}</span>
-                )}
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  loading={submitting}
+                  disabled={submitting}
+                >
+                  Create User
+                </Button>
               </div>
-            </div>
-          ) : null}
-        </Modal>
+            </form>
+          </Modal>
+        )}
 
-        {/* Modal: Delete User Confirmation */}
-        <Modal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          title="Confirm User Account Deletion"
-        >
-          <div className="space-y-4 text-xs">
-            <div className="flex items-start gap-3 p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-800 dark:text-rose-200">
-              <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600" />
+        {/* Modal: Edit User */}
+        {isEditModalOpen && selectedUser && (
+          <Modal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            title="Edit User Account"
+            description={`Modifying credentials for ${selectedUser.email}`}
+            maxWidth="max-w-lg"
+          >
+            <form onSubmit={handleSubmitEdit} className="space-y-4">
               <div>
-                <div className="font-bold text-sm">Permanent Account Deletion</div>
-                <div className="mt-1 text-xs leading-relaxed">
-                  You are preparing to delete user <span className="font-bold underline">{selectedUser?.email}</span> (Role: <strong>{selectedUser?.role}</strong>).
+                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  Reset Password (leave empty to keep current)
+                </label>
+                <input
+                  type="password"
+                  minLength={6}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                    Account Role
+                  </label>
+                  {isCompanyUser ? (
+                    <input
+                      type="text"
+                      disabled
+                      value={formData.role}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                    />
+                  ) : (
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                    >
+                      <option value="APPLICANT">Candidate / Applicant</option>
+                      <option value="RECRUITER">Company Recruiter</option>
+                      <option value="COMPANY">Company Account (Admin)</option>
+                      <option value="SUPER_ADMIN">Super Administrator</option>
+                    </select>
+                  )}
                 </div>
-                <div className="mt-2 text-[11px] text-rose-700 dark:text-rose-300 bg-rose-100/60 dark:bg-rose-900/40 p-2.5 rounded-lg">
-                  ⚠️ <strong>Integrity & Audit Notice:</strong> If this user has submitted applications, created job postings, or scheduled interviews, permanently deleting them will purge their record and relations. Alternatively, you can <strong>Suspend the account</strong> to disable login while preserving historical data.
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                    Account Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="SUSPENDED">Suspended</option>
+                  </select>
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDeleteModalOpen(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleSuspendInsteadOfDelete}
-                disabled={submitting}
-                className="border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-              >
-                Suspend Account Instead
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleDeleteUser(true)}
-                disabled={submitting}
-                className="bg-rose-600 hover:bg-rose-700 text-white"
-              >
-                {submitting ? 'Deleting...' : 'Permanently Delete'}
-              </Button>
+              {formData.role === 'APPLICANT' && (
+                <div>
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  />
+                </div>
+              )}
+
+              {(formData.role === 'RECRUITER' || formData.role === 'COMPANY') && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                      Associated Organization
+                    </label>
+                    {isCompanyUser ? (
+                      <input
+                        type="text"
+                        disabled
+                        value={formData.companyName || currentUser?.company?.name || 'Your Organization'}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                      />
+                    ) : (
+                      <select
+                        value={formData.companyId}
+                        onChange={(e) => {
+                          const cId = e.target.value;
+                          const match = companies.find((c) => c.id === cId);
+                          setFormData({
+                            ...formData,
+                            companyId: cId,
+                            companyName: match?.name || '',
+                          });
+                        }}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                      >
+                        <option value="">Choose an organization...</option>
+                        {companies.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {formData.role === 'RECRUITER' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  loading={submitting}
+                  disabled={submitting}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
+
+        {/* Modal: View User Details */}
+        {isViewModalOpen && selectedUser && (
+          <Modal
+            isOpen={isViewModalOpen}
+            onClose={() => setIsViewModalOpen(false)}
+            title="Account Telemetry & Audit Profile"
+            description={`Overview for ${selectedUser.email}`}
+            maxWidth="max-w-xl"
+          >
+            {loadingDetails ? (
+              <div className="space-y-3 py-4">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : viewUserDetails ? (
+              <div className="space-y-4 text-xs">
+                <div className="p-4 bg-[#101726] rounded-2xl border border-[#2B3950] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-[#F1F5F9]">
+                      {viewUserDetails.email}
+                    </span>
+                    <Badge variant={viewUserDetails.status === 'ACTIVE' ? 'success' : 'danger'}>
+                      {viewUserDetails.status}
+                    </Badge>
+                  </div>
+                  <div className="text-[#64748B] font-mono text-[11px]">
+                    User ID: {viewUserDetails.id}
+                  </div>
+                  <div className="text-[#A1AEC2]">
+                    Registered: {new Date(viewUserDetails.createdAt).toLocaleString()}
+                  </div>
+                </div>
+
+                {viewUserDetails.company && (
+                  <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 space-y-1.5">
+                    <div className="font-bold text-xs text-indigo-300 flex items-center gap-1.5">
+                      <Building className="w-4 h-4 text-indigo-400" />
+                      <span>Company Account Ownership</span>
+                    </div>
+                    <div className="text-[#F1F5F9]">
+                      Organization: <strong>{viewUserDetails.company.name}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {viewUserDetails.recruiterProfile && (
+                  <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 space-y-1.5">
+                    <div className="font-bold text-xs text-indigo-300 flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-indigo-400" />
+                      <span>Recruiter Enterprise Affiliation</span>
+                    </div>
+                    <div className="text-[#F1F5F9]">
+                      Company: <strong>{viewUserDetails.recruiterProfile.company?.name || 'N/A'}</strong>
+                    </div>
+                    {viewUserDetails.recruiterProfile.title && (
+                      <div className="text-[#A1AEC2]">
+                        Title: {viewUserDetails.recruiterProfile.title}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {viewUserDetails.applicantProfile && (
+                  <div className="p-4 bg-[#101726] rounded-2xl border border-[#2B3950] space-y-2">
+                    <div className="font-bold text-xs text-[#F1F5F9]">
+                      Candidate Profile Information
+                    </div>
+                    <div className="text-[#A1AEC2]">
+                      Full Name: <strong className="text-[#F1F5F9]">{viewUserDetails.applicantProfile.fullName}</strong>
+                    </div>
+                    {viewUserDetails.applicantProfile.headline && (
+                      <div className="text-[#64748B]">
+                        Headline: {viewUserDetails.applicantProfile.headline}
+                      </div>
+                    )}
+                    {viewUserDetails.applicantProfile.applications && (
+                      <div className="text-[#64748B] text-[11px] pt-1 border-t border-[#2B3950]">
+                        Total Job Submissions: {viewUserDetails.applicantProfile.applications.length}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsViewModalOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </Modal>
+        )}
+
+        {/* Modal: Delete User */}
+        {isDeleteModalOpen && selectedUser && (
+          <Modal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            title="Account Governance Action"
+            description={`Action for ${selectedUser.email}`}
+            maxWidth="max-w-md"
+          >
+            <div className="space-y-4 text-xs">
+              <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-300 leading-relaxed">
+                <AlertTriangle className="w-4 h-4 text-rose-400 mb-1" />
+                <p>
+                  Permanent deletion completely removes the user account. For compliance and historical audit integrity, suspending the account is strongly recommended.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  onClick={handleSuspendInsteadOfDelete}
+                  variant="primary"
+                  size="sm"
+                  loading={submitting}
+                  disabled={submitting}
+                >
+                  <Ban className="w-3.5 h-3.5 mr-1" />
+                  <span>Safely Suspend Account (Recommended)</span>
+                </Button>
+
+                <Button
+                  onClick={() => handleDeleteUser(true)}
+                  variant="danger"
+                  size="sm"
+                  loading={submitting}
+                  disabled={submitting}
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                  <span>Permanently Delete Account</span>
+                </Button>
+
+                <Button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  variant="outline"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
-          </div>
-        </Modal>
+          </Modal>
+        )}
+
+        {/* Modal: Create Organization Inline */}
+        {isCreateCompanyModalOpen && (
+          <Modal
+            isOpen={isCreateCompanyModalOpen}
+            onClose={() => setIsCreateCompanyModalOpen(false)}
+            title="Register New Organization"
+            description="Create an organization record to associate with recruiters and company accounts."
+            maxWidth="max-w-md"
+          >
+            <form onSubmit={handleCreateCompanyInline} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-[#A1AEC2] mb-1.5">
+                  Organization Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newCompanyData.name}
+                  onChange={(e) => setNewCompanyData({ ...newCompanyData, name: e.target.value })}
+                  placeholder="e.g. Apex Cybernetics"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#A1AEC2] mb-1.5">
+                  Industry
+                </label>
+                <input
+                  type="text"
+                  value={newCompanyData.industry}
+                  onChange={(e) => setNewCompanyData({ ...newCompanyData, industry: e.target.value })}
+                  placeholder="e.g. Enterprise Cloud Computing"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#A1AEC2] mb-1.5">
+                  HQ Location
+                </label>
+                <input
+                  type="text"
+                  value={newCompanyData.location}
+                  onChange={(e) => setNewCompanyData({ ...newCompanyData, location: e.target.value })}
+                  placeholder="e.g. San Francisco, CA"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreateCompanyModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  loading={creatingCompany}
+                  disabled={creatingCompany}
+                >
+                  Create Organization
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
       </div>
     </AuthGuard>
   );

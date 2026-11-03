@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../providers/AuthContext';
@@ -25,6 +25,7 @@ import {
   UserCheck,
   Activity,
   Shield,
+  ExternalLink,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -36,13 +37,16 @@ export const Navbar: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const notifRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
   const fetchNotifications = async () => {
     if (!user) return;
     try {
       const res = await api.get('/notifications');
       if (res.data.success) {
-        setNotifications(res.data.data.notifications);
-        setUnreadCount(res.data.data.unreadCount);
+        setNotifications(res.data.data.notifications || []);
+        setUnreadCount(res.data.data.unreadCount || 0);
       }
     } catch {
       // Ignore notification fetch errors
@@ -57,9 +61,38 @@ export const Navbar: React.FC = () => {
     }
   }, [user]);
 
+  // Close menus on outside click or escape
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNotificationsOpen(false);
+        setUserMenuOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    setNotificationsOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
 
   const handleMarkAllRead = async () => {
@@ -87,13 +120,15 @@ export const Navbar: React.FC = () => {
   const role = user?.role;
 
   const navigationItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'RECRUITER', 'APPLICANT'] },
-    { name: role === 'APPLICANT' ? 'Browse Jobs' : 'Job Postings', href: '/jobs', icon: Briefcase, roles: ['SUPER_ADMIN', 'RECRUITER', 'APPLICANT'] },
-    { name: 'Kanban Pipeline', href: '/applications/kanban/default', icon: Layers, roles: ['RECRUITER', 'SUPER_ADMIN'] },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'COMPANY', 'RECRUITER', 'APPLICANT'] },
+    { name: role === 'APPLICANT' ? 'Browse Jobs' : 'Job Postings', href: '/jobs', icon: Briefcase, roles: ['SUPER_ADMIN', 'COMPANY', 'RECRUITER', 'APPLICANT'] },
+    { name: 'Kanban Pipeline', href: '/applications/kanban/default', icon: Layers, roles: ['COMPANY', 'RECRUITER', 'SUPER_ADMIN'] },
     { name: 'My Applications', href: '/applications/my', icon: FileText, roles: ['APPLICANT'] },
-    { name: 'Talent Pool', href: '/applicants', icon: Users, roles: ['RECRUITER', 'SUPER_ADMIN'] },
-    { name: 'Interviews', href: '/interviews', icon: Calendar, roles: ['SUPER_ADMIN', 'RECRUITER', 'APPLICANT'] },
-    { name: 'Company Profile', href: '/profile', icon: Building2, roles: ['RECRUITER'] },
+    { name: 'Talent Pool', href: '/applicants', icon: Users, roles: ['COMPANY', 'RECRUITER', 'SUPER_ADMIN'] },
+    { name: 'Interviews', href: '/interviews', icon: Calendar, roles: ['SUPER_ADMIN', 'COMPANY', 'RECRUITER', 'APPLICANT'] },
+    { name: 'Company Profile', href: '/profile', icon: Building2, roles: ['COMPANY', 'RECRUITER'] },
+    { name: 'Team Recruiters', href: '/admin/users', icon: UserCheck, roles: ['COMPANY'] },
+    { name: 'Organizations', href: '/admin/companies', icon: Building2, roles: ['SUPER_ADMIN'] },
     { name: 'User Management', href: '/admin/users', icon: UserCheck, roles: ['SUPER_ADMIN'] },
     { name: 'Audit Trail', href: '/admin/audit', icon: Activity, roles: ['SUPER_ADMIN'] },
     { name: 'API Docs', href: DOCS_URL, icon: Shield, roles: ['SUPER_ADMIN'], external: true },
@@ -102,30 +137,35 @@ export const Navbar: React.FC = () => {
   const filteredNav = role ? navigationItems.filter((item) => item.roles.includes(role)) : [];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 w-full border-b border-[#2B3950] bg-[#080D19]/95 backdrop-blur-md">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto w-full">
         {/* Brand & Mobile Hamburger */}
         <div className="flex items-center gap-3 sm:gap-6">
           {user && (
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 md:hidden transition-colors"
+              className="p-2 rounded-xl text-[#A1AEC2] hover:text-[#F1F5F9] hover:bg-[#151F32] md:hidden transition-colors"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           )}
 
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+          <Link href="/" className="flex items-center gap-2.5 group select-none">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:bg-indigo-500 hover:shadow-glow-primary transition-all">
               <Briefcase className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-800 dark:from-white dark:via-blue-200 dark:to-indigo-300 bg-clip-text text-transparent">
-                HireFlow
-              </span>
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-600 dark:text-blue-400 -mt-1">
-                Recruitment ATS
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold text-[#F1F5F9] tracking-tight">
+                  HireFlow
+                </span>
+                <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-[10px] font-bold text-indigo-300 uppercase tracking-wider">
+                  ATS
+                </span>
+              </div>
+              <span className="text-[10px] font-medium text-[#64748B] -mt-1 hidden sm:block">
+                Talent & Recruitment Platform
               </span>
             </div>
           </Link>
@@ -136,57 +176,68 @@ export const Navbar: React.FC = () => {
           {user ? (
             <>
               {/* Notification Popover */}
-              <div className="relative">
+              <div className="relative" ref={notifRef}>
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="relative p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+                  className={`relative p-2 rounded-xl text-[#A1AEC2] hover:text-[#F1F5F9] hover:bg-[#151F32] border border-transparent hover:border-[#2B3950] focus-ring active:scale-95 transition-all ${
+                    notificationsOpen ? 'bg-[#151F32] text-[#F1F5F9] border-[#2B3950]' : ''
+                  }`}
                   aria-label="Open notifications"
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900">
+                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-[#080D19]">
                       {unreadCount}
                     </span>
                   )}
                 </button>
 
                 {notificationsOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95"
-                    onMouseLeave={() => setNotificationsOpen(false)}
-                  >
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                        Notifications ({unreadCount})
-                      </span>
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[#1C2940] border border-[#2B3950] rounded-2xl shadow-dropdown py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#2B3950]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#F1F5F9]">
+                          Notifications
+                        </span>
+                        {unreadCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold">
+                            {unreadCount} unread
+                          </span>
+                        )}
+                      </div>
                       {unreadCount > 0 && (
                         <button
                           onClick={handleMarkAllRead}
-                          className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 font-semibold"
+                          className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold"
                         >
                           <CheckCheck className="w-3.5 h-3.5" />
-                          Mark all read
+                          Mark all as read
                         </button>
                       )}
                     </div>
-                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    <div className="max-h-80 overflow-y-auto divide-y divide-[#2B3950]/60">
                       {notifications.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-slate-400">
+                        <div className="p-6 text-center text-xs text-[#64748B]">
                           No notifications yet
                         </div>
                       ) : (
-                        notifications.slice(0, 8).map((n) => (
+                        notifications.slice(0, 10).map((n) => (
                           <div
                             key={n.id}
                             onClick={() => handleMarkOneRead(n.id)}
-                            className={`p-3 text-xs cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${
-                              !n.read ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''
+                            className={`p-3 text-xs cursor-pointer hover:bg-[#1E2D47] transition-colors ${
+                              !n.read ? 'bg-indigo-500/10' : ''
                             }`}
                           >
-                            <div className="font-semibold text-slate-900 dark:text-slate-100 mb-0.5">
-                              {n.title}
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                              <span className="font-bold text-[#F1F5F9] truncate">
+                                {n.title}
+                              </span>
+                              {!n.read && (
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                              )}
                             </div>
-                            <div className="text-slate-500 dark:text-slate-400 leading-relaxed">
+                            <div className="text-[#A1AEC2] leading-relaxed text-[11px]">
                               {n.message}
                             </div>
                           </div>
@@ -198,71 +249,88 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* User Dropdown */}
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className={`flex items-center gap-2 p-1.5 rounded-xl hover:bg-[#151F32] border border-transparent hover:border-[#2B3950] focus-ring active:scale-[0.98] transition-all ${
+                    userMenuOpen ? 'bg-[#151F32] border-[#2B3950]' : ''
+                  }`}
                   aria-label="User profile menu"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white font-semibold flex items-center justify-center text-xs uppercase shadow-sm">
-                    {user.applicantProfile?.fullName?.[0] || user.email[0]}
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm">
+                    {user.applicantProfile?.fullName?.[0] || user.company?.name?.[0] || user.email[0]}
                   </div>
                   <div className="hidden sm:flex flex-col text-left">
-                    <span className="text-xs font-semibold text-slate-900 dark:text-white max-w-[120px] truncate">
-                      {user.applicantProfile?.fullName || user.email.split('@')[0]}
+                    <span className="text-xs font-bold text-[#F1F5F9] max-w-[130px] truncate">
+                      {user.applicantProfile?.fullName || user.company?.name || user.email.split('@')[0]}
                     </span>
                     <Badge
                       variant={
                         user.role === 'SUPER_ADMIN'
                           ? 'purple'
-                          : user.role === 'RECRUITER'
+                          : user.role === 'COMPANY'
                           ? 'info'
+                          : user.role === 'RECRUITER'
+                          ? 'primary'
                           : 'default'
                       }
                       className="text-[10px] py-0 px-1.5"
                     >
-                      {user.role}
+                      {user.role.replace('_', ' ')}
                     </Badge>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                  <ChevronDown className="w-4 h-4 text-[#64748B] group-hover:text-[#F1F5F9] transition-colors" />
                 </button>
 
                 {userMenuOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95"
-                    onMouseLeave={() => setUserMenuOpen(false)}
-                  >
-                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                      <div className="font-semibold text-slate-900 dark:text-white truncate">
+                  <div className="absolute right-0 mt-2 w-64 bg-[#1C2940] border border-[#2B3950] rounded-2xl shadow-dropdown py-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-4 py-2.5 border-b border-[#2B3950]">
+                      <div className="font-bold text-[#F1F5F9] truncate">
+                        {user.applicantProfile?.fullName || user.company?.name || user.email}
+                      </div>
+                      <div className="text-[11px] text-[#A1AEC2] truncate font-mono">
                         {user.email}
                       </div>
-                      {user.recruiterProfile?.companyName && (
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <Building className="w-3 h-3" />
-                          {user.recruiterProfile.companyName}
+                      {(user.company?.name || user.recruiterProfile?.companyName) && (
+                        <div className="text-[11px] text-teal-300 bg-teal-500/10 border border-teal-500/20 rounded-lg px-2 py-1 flex items-center gap-1.5 mt-2 font-medium">
+                          <Building className="w-3 h-3 text-teal-400 shrink-0" />
+                          <span className="truncate">{user.company?.name || user.recruiterProfile?.companyName}</span>
                         </div>
                       )}
                     </div>
 
-                    <Link
-                      href="/profile"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                    >
-                      <User className="w-4 h-4 text-slate-400" />
-                      <span>Account Settings</span>
-                    </Link>
+                    <div className="py-1">
+                      <Link
+                        href="/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="group flex items-center gap-2.5 px-4 py-2 hover:bg-[#1E2D47] text-[#A1AEC2] hover:text-[#F1F5F9] font-semibold transition-all duration-150"
+                      >
+                        <User className="w-4 h-4 text-[#64748B] group-hover:text-indigo-400 transition-colors" />
+                        <span>Account & Profile</span>
+                      </Link>
 
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        logout();
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-left"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
-                    </button>
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="group flex items-center gap-2.5 px-4 py-2 hover:bg-[#1E2D47] text-[#A1AEC2] hover:text-[#F1F5F9] font-semibold transition-all duration-150"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-[#64748B] group-hover:text-indigo-400 transition-colors" />
+                        <span>My Dashboard</span>
+                      </Link>
+                    </div>
+
+                    <div className="pt-1 border-t border-[#2B3950]">
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          logout();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 font-semibold transition-all duration-150 text-left active:scale-[0.99]"
+                      >
+                        <LogOut className="w-4 h-4 text-rose-400" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -271,13 +339,13 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                className="px-3.5 py-2 text-xs font-semibold text-[#A1AEC2] hover:text-[#F1F5F9] hover:bg-[#151F32] rounded-xl transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 href="/register"
-                className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-sm hover:shadow-glow-primary transition-all"
               >
                 Create Account
               </Link>
@@ -288,12 +356,14 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && user && (
-        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 space-y-1 animate-in slide-in-from-top-2 duration-150">
-          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="md:hidden border-t border-[#2B3950] bg-[#080D19] px-4 py-3 space-y-1 animate-in slide-in-from-top-2 duration-150 shadow-dropdown">
+          <div className="px-3 py-1 text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
             {role?.replace('_', ' ')} MENU
           </div>
           {filteredNav.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            const isActive =
+              pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href));
             const Icon = item.icon;
 
             if (item.external) {
@@ -304,10 +374,13 @@ export const Navbar: React.FC = () => {
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl text-[#A1AEC2] hover:bg-[#151F32]"
                 >
-                  <Icon className="w-4 h-4 shrink-0 text-slate-400" />
-                  <span>{item.name}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 shrink-0 text-[#64748B]" />
+                    <span>{item.name}</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-[#64748B]" />
                 </a>
               );
             }
@@ -317,17 +390,34 @@ export const Navbar: React.FC = () => {
                 key={item.name}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-xl transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                    : 'text-[#A1AEC2] hover:bg-[#151F32]'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon
+                  className={`w-4 h-4 shrink-0 ${
+                    isActive ? 'text-indigo-400' : 'text-[#64748B]'
+                  }`}
+                />
                 <span>{item.name}</span>
               </Link>
             );
           })}
+
+          <div className="pt-2 border-t border-[#2B3950] mt-2">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                logout();
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl text-left"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       )}
     </header>

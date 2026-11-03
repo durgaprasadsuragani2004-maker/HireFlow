@@ -45,13 +45,13 @@ export default function JobsPage() {
 
       const res = await api.get(`/jobs?${params.toString()}`);
       if (res.data.success) {
-        setJobs(res.data.data);
-        setTotal(res.data.meta.total);
-        setTotalPages(res.data.meta.totalPages);
+        setJobs(res.data.data || []);
+        setTotal(res.data.meta?.total || 0);
+        setTotalPages(res.data.meta?.totalPages || 1);
       }
     } catch (err: any) {
       setErrorMessage(
-        err.response?.data?.message || 'Unable to load job listings at this time. Please check your connection and retry.'
+        err.response?.data?.message || 'Unable to load job listings at this time. Please retry.'
       );
     } finally {
       setLoading(false);
@@ -62,155 +62,147 @@ export default function JobsPage() {
     fetchJobs();
   }, [page, search, location, employmentType, experienceLevel]);
 
-  const canPostJob = user?.role === 'RECRUITER' || user?.role === 'SUPER_ADMIN';
+  const canPostJob =
+    user?.role === 'RECRUITER' || user?.role === 'COMPANY' || user?.role === 'SUPER_ADMIN';
+
+  const isEmployer = user?.role === 'RECRUITER' || user?.role === 'COMPANY';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto py-2">
       {/* Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-500">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#A1AEC2]">
         <Link
           href="/"
-          className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+          className="flex items-center gap-1 hover:text-indigo-400 transition-colors"
         >
           <Home className="w-3.5 h-3.5" />
           <span>Home</span>
         </Link>
-        <span className="text-slate-400">/</span>
-        <span className="text-slate-800 dark:text-slate-200 font-semibold">
-          {user?.role === 'RECRUITER' ? 'Company Job Postings' : 'Career Opportunities'}
+        <span className="text-[#64748B]">/</span>
+        <span className="text-[#F1F5F9] font-semibold">
+          {isEmployer ? 'Job Postings' : 'Career Opportunities'}
         </span>
       </nav>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {user?.role === 'RECRUITER' ? 'Company Job Postings' : 'Career Opportunities'}
+          <h1 className="text-2xl font-bold text-[#F1F5F9] tracking-tight">
+            {isEmployer ? 'Company Job Postings' : 'Career Opportunities'}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Discover active positions or manage candidates through pipeline stages.
+          <p className="text-xs text-[#A1AEC2] mt-0.5">
+            Discover active positions or manage candidates through recruitment pipeline stages.
           </p>
         </div>
 
         {canPostJob && (
           <Link
             href="/jobs/new"
-            className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto"
+            className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-sm hover:shadow-glow-primary flex items-center gap-1.5 self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Create New Job</span>
+            <span>Post New Job</span>
           </Link>
         )}
       </div>
 
-      {/* Filter bar */}
+      {/* Filter Component */}
       <JobFilter
         search={search}
-        setSearch={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
+        setSearch={setSearch}
         location={location}
-        setLocation={(val) => {
-          setLocation(val);
-          setPage(1);
-        }}
+        setLocation={setLocation}
         employmentType={employmentType}
-        setEmploymentType={(val) => {
-          setEmploymentType(val);
-          setPage(1);
-        }}
+        setEmploymentType={setEmploymentType}
         experienceLevel={experienceLevel}
-        setExperienceLevel={(val) => {
-          setExperienceLevel(val);
-          setPage(1);
-        }}
+        setExperienceLevel={setExperienceLevel}
       />
 
-      {/* Error state */}
-      {errorMessage && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-rose-800 dark:text-rose-200">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchJobs}
-            className="border-rose-300 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 flex items-center gap-1 shrink-0"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Retry</span>
+      {/* Jobs Grid or Feedback */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-64 rounded-3xl" />
+          ))}
+        </div>
+      ) : errorMessage ? (
+        <div className="p-8 text-center bg-[#151F32] border border-[#2B3950] rounded-3xl shadow-card max-w-lg mx-auto my-8">
+          <AlertCircle className="w-8 h-8 text-rose-400 mx-auto mb-2" />
+          <h3 className="text-base font-bold text-[#F1F5F9]">Failed to Load Opportunities</h3>
+          <p className="text-xs text-[#A1AEC2] mt-1">{errorMessage}</p>
+          <Button onClick={fetchJobs} variant="primary" size="sm" className="mt-4">
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
           </Button>
         </div>
-      )}
-
-      {/* Jobs Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-60 rounded-2xl" />
-          ))}
-        </div>
-      ) : !errorMessage && jobs.length === 0 ? (
+      ) : jobs.length === 0 ? (
         <EmptyState
-          title="No Job Postings Found"
-          description="Try broadening your search keywords or resetting filters to view more opportunities."
-          actionLabel={canPostJob ? 'Create First Job' : undefined}
-          onAction={() => window.location.assign('/jobs/new')}
+          title="No Positions Found"
+          description="Try broadening your search query or removing active filters to view all available roles."
+          actionLabel={canPostJob ? 'Post a New Job' : 'Clear Filters'}
+          onAction={() => {
+            if (canPostJob) {
+              window.location.assign('/jobs/new');
+            } else {
+              setSearch('');
+              setLocation('');
+              setEmploymentType('');
+              setExperienceLevel('');
+            }
+          }}
         />
-      ) : !errorMessage && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {jobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              onApply={(j) => setSelectedJobToApply(j)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Pagination Controls */}
-      {!errorMessage && totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
-          <span className="text-xs text-slate-500">
-            Page <strong className="text-slate-900 dark:text-white">{page}</strong> of{' '}
-            <strong className="text-slate-900 dark:text-white">{totalPages}</strong> ({total} positions)
-          </span>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="p-2"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {jobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onApply={user?.role === 'APPLICANT' ? (j) => setSelectedJobToApply(j) : undefined}
+              />
+            ))}
           </div>
-        </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-6 border-t border-[#2B3950]">
+              <span className="text-xs text-[#A1AEC2]">
+                Showing <span className="font-semibold text-[#F1F5F9]">{jobs.length}</span> of{' '}
+                <span className="font-semibold text-[#F1F5F9]">{total}</span> positions
+              </span>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+                </Button>
+                <span className="text-xs font-semibold px-2 text-[#F1F5F9]">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Quick Apply Modal */}
+      {/* Apply Modal */}
       {selectedJobToApply && (
         <ApplyModal
-          job={selectedJobToApply}
-          isOpen={!!selectedJobToApply}
+          isOpen={Boolean(selectedJobToApply)}
           onClose={() => setSelectedJobToApply(null)}
+          job={selectedJobToApply}
           onSuccess={() => {
-            setSelectedJobToApply(null);
             fetchJobs();
           }}
         />

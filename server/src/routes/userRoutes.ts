@@ -11,12 +11,12 @@ const router = Router();
 router.get('/me', authenticate, authController.getMe);
 router.patch('/me', authenticate, validateBody(updateMeSchema), authController.updateMe);
 
-// Admin-only user management routes
-router.get('/', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), authController.adminGetUsers);
-router.post('/', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), validateBody(adminCreateUserSchema), authController.adminCreateUser);
-router.get('/:id', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), authController.adminGetUserById);
-router.patch('/:id', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), validateBody(adminUpdateUserSchema), authController.adminUpdateUser);
-router.patch('/:id/status', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), authController.adminUpdateUserStatus);
-router.delete('/:id', authenticate, authorizeRoles(ROLES.SUPER_ADMIN), authController.adminDeleteUser);
+// User management routes (Super Admin & Company Organization)
+router.get('/', authenticate, authorizeRoles(ROLES.SUPER_ADMIN, ROLES.COMPANY), authController.adminGetUsers);
+router.post('/', authenticate, authorizeRoles(ROLES.SUPER_ADMIN, ROLES.COMPANY), validateBody(adminCreateUserSchema), authController.adminCreateUser);
+router.get('/:id', authenticate, authorizeRoles(ROLES.SUPER_ADMIN, ROLES.COMPANY), authController.adminGetUserById);
+router.patch('/:id', authenticate, authorizeRoles(ROLES.SUPER_ADMIN, ROLES.COMPANY), validateBody(adminUpdateUserSchema), authController.adminUpdateUser);
+router.patch('/:id/status', authenticate, authorizeRoles(ROLES.SUPER_ADMIN, ROLES.COMPANY), authController.adminUpdateUserStatus);
+router.delete('/:id', authenticate, authorizeRoles(ROLES.SUPER_ADMIN, ROLES.COMPANY), authController.adminDeleteUser);
 
 export default router;

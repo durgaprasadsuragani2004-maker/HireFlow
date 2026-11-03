@@ -25,8 +25,8 @@ interface CompanyFunnelChartProps {
 const STAGE_COLORS: Record<string, string> = {
   APPLIED: '#3b82f6', // blue
   SCREENING: '#8b5cf6', // purple
-  SHORTLISTED: '#6366f1', // indigo
-  INTERVIEW: '#f59e0b', // amber
+  SHORTLISTED: '#f59e0b', // amber
+  INTERVIEW: '#6366f1', // indigo
   SELECTED: '#10b981', // emerald
   REJECTED: '#f43f5e', // rose
 };
@@ -41,17 +41,17 @@ export const CompanyFunnelChart: React.FC<CompanyFunnelChartProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-dark-card border border-dark-border rounded-3xl p-6 shadow-card space-y-4">
         <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-56 w-full rounded-xl" />
+        <Skeleton className="h-56 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-2xl text-center space-y-2 text-xs text-rose-700 dark:text-rose-300">
-        <AlertCircle className="w-5 h-5 text-rose-500 mx-auto" />
+      <div className="p-6 bg-rose-950/20 border border-rose-800/40 rounded-2xl text-center space-y-2 text-xs text-rose-300">
+        <AlertCircle className="w-5 h-5 text-rose-400 mx-auto" />
         <p className="font-semibold">{error}</p>
       </div>
     );
@@ -60,35 +60,35 @@ export const CompanyFunnelChart: React.FC<CompanyFunnelChartProps> = ({
   const hasData = funnel.some((f) => f.count > 0);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
+    <div className="bg-dark-card border border-dark-border rounded-3xl p-6 shadow-card space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-dark-border pb-4">
         <div>
-          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-sm sm:text-base">
-            <TrendingUp className="w-4 h-4 text-blue-600" />
+          <h3 className="font-bold text-dark-text flex items-center gap-2 text-sm sm:text-base">
+            <TrendingUp className="w-4 h-4 text-brand-400" />
             <span>Recruitment Funnel & Pipeline Health</span>
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-dark-muted mt-0.5">
             {companyName ? `Candidate conversion flow for ${companyName}` : 'Company candidate conversion flow'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-xs">
-          <div className="px-3 py-1 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-900 font-semibold">
+        <div className="flex items-center gap-2.5 text-xs">
+          <div className="px-3 py-1 bg-brand-500/10 text-brand-300 rounded-xl border border-brand-500/20 font-bold">
             {totalApplications} Applications
           </div>
-          <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-semibold">
-            {totalJobs} Jobs
+          <div className="px-3 py-1 bg-dark-input text-dark-muted rounded-xl font-bold border border-dark-border">
+            {totalJobs} Active Jobs
           </div>
         </div>
       </div>
 
       {!hasData ? (
         <div className="py-12 text-center space-y-2">
-          <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <Users className="w-8 h-8 text-dark-dim mx-auto" />
+          <p className="text-xs font-bold text-dark-text">
             No Candidate Applications Recorded Yet
           </p>
-          <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+          <p className="text-[11px] text-dark-muted max-w-sm mx-auto">
             When candidates submit applications and advance through pipeline stages, this chart will update in real time.
           </p>
         </div>
@@ -98,31 +98,31 @@ export const CompanyFunnelChart: React.FC<CompanyFunnelChartProps> = ({
             <BarChart data={funnel} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
               <XAxis
                 dataKey="stage"
-                tick={{ fontSize: 11, fill: '#64748b' }}
-                axisLine={{ stroke: '#cbd5e1' }}
+                tick={{ fontSize: 10, fill: '#A1AEC2' }}
+                axisLine={{ stroke: '#2B3950' }}
                 tickLine={false}
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 11, fill: '#64748b' }}
-                axisLine={{ stroke: '#cbd5e1' }}
+                tick={{ fontSize: 10, fill: '#A1AEC2' }}
+                axisLine={{ stroke: '#2B3950' }}
                 tickLine={false}
               />
               <Tooltip
+                cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
                 contentStyle={{
-                  backgroundColor: '#0f172a',
-                  borderColor: '#334155',
+                  backgroundColor: '#1C2940',
+                  borderColor: '#2B3950',
                   borderRadius: '0.75rem',
-                  color: '#fff',
+                  color: '#F1F5F9',
                   fontSize: '12px',
                 }}
-                formatter={(val: any) => [`${val} Candidate${val === 1 ? '' : 's'}`, 'Count']}
               />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {funnel.map((entry) => (
+                {funnel.map((entry, index) => (
                   <Cell
-                    key={entry.stage}
-                    fill={STAGE_COLORS[entry.stage] || '#3b82f6'}
+                    key={`cell-${index}`}
+                    fill={STAGE_COLORS[entry.stage] || '#6366f1'}
                   />
                 ))}
               </Bar>
@@ -130,27 +130,6 @@ export const CompanyFunnelChart: React.FC<CompanyFunnelChartProps> = ({
           </ResponsiveContainer>
         </div>
       )}
-
-      {/* Stage Legend and Breakdown */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-        {funnel.map((item) => (
-          <div
-            key={item.stage}
-            className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 text-center"
-          >
-            <div
-              className="w-2.5 h-2.5 rounded-full mx-auto mb-1"
-              style={{ backgroundColor: STAGE_COLORS[item.stage] || '#3b82f6' }}
-            />
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight">
-              {item.stage}
-            </div>
-            <div className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-              {item.count}
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };

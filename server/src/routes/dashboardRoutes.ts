@@ -13,6 +13,13 @@ router.get(
 );
 
 router.get(
+  '/company',
+  authenticate,
+  authorizeRoles(ROLES.COMPANY),
+  dashboardController.getCompanyDashboard
+);
+
+router.get(
   '/recruiter',
   authenticate,
   authorizeRoles(ROLES.RECRUITER),

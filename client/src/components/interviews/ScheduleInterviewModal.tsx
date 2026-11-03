@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 import { useAuth } from '../../providers/AuthContext';
 import { useToast } from '../../providers/ToastContext';
+import { Calendar, Clock, Video, User, Mail, FileText } from 'lucide-react';
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -24,15 +25,15 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
   const { showToast } = useToast();
 
   const [interviewerName, setInterviewerName] = useState(
-    user?.applicantProfile?.fullName || 'Sarah Jenkins'
+    user?.applicantProfile?.fullName || user?.email?.split('@')[0] || ''
   );
-  const [interviewerEmail, setInterviewerEmail] = useState(user?.email || 'sarah.recruiter@technova.com');
-  const [date, setDate] = useState('2026-10-28');
+  const [interviewerEmail, setInterviewerEmail] = useState(user?.email || '');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState('14:00');
   const [endTime, setEndTime] = useState('15:00');
   const [interviewType, setInterviewType] = useState('TECHNICAL');
   const [meetingLink, setMeetingLink] = useState('https://meet.google.com/hireflow-interview');
-  const [notes, setNotes] = useState('Candidate technical architecture interview.');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (!application) return null;
@@ -54,7 +55,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
       });
 
       if (res.data.success) {
-        showToast('Interview scheduled successfully!', 'success');
+        showToast('Interview scheduled successfully and added to pipeline calendar!', 'success');
         onSuccess?.();
         onClose();
       }
@@ -70,125 +71,139 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Schedule Interview: ${application.applicant?.fullName}`}
+      title="Schedule Interview Round"
+      description={`Candidate: ${application.applicant?.fullName}`}
       maxWidth="max-w-lg"
     >
-      <form onSubmit={handleSubmit} className="space-y-3.5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Interviewer Name
+            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+              Interviewer Name *
             </label>
             <input
               type="text"
               required
               value={interviewerName}
               onChange={(e) => setInterviewerName(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Interviewer Email
+            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+              Interviewer Email *
             </label>
             <input
               type="email"
               required
               value={interviewerEmail}
               onChange={(e) => setInterviewerEmail(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Date (YYYY-MM-DD)
+            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+              Date *
             </label>
             <input
               type="date"
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Start Time (24h)
+            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+              Start Time *
             </label>
             <input
-              type="text"
+              type="time"
               required
-              placeholder="14:00"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              End Time (24h)
+            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+              End Time *
             </label>
             <input
-              type="text"
+              type="time"
               required
-              placeholder="15:00"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Interview Type
+            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+              Round Type
             </label>
             <select
               value={interviewType}
               onChange={(e) => setInterviewType(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
             >
-              <option value="TECHNICAL">Technical Round</option>
-              <option value="HR">HR / Recruiter Screen</option>
-              <option value="MANAGERIAL">Managerial / Leadership</option>
-              <option value="BEHAVIORAL">Behavioral</option>
-              <option value="FINAL">Final Executive Round</option>
+              <option value="TECHNICAL">Technical Architecture</option>
+              <option value="HR">Initial HR Screening</option>
+              <option value="MANAGERIAL">Engineering Management</option>
+              <option value="BEHAVIORAL">Behavioral / Team Fit</option>
+              <option value="FINAL">Executive Final Round</option>
             </select>
           </div>
+
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Meeting Link (URL)
+            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+              Meeting URL
             </label>
             <input
               type="url"
+              required
               value={meetingLink}
               onChange={(e) => setMeetingLink(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="https://meet.google.com/..."
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Preparation Notes for Candidate / Panel
+          <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            Interviewer Briefing Notes (Internal)
           </label>
           <textarea
-            rows={2}
+            rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full p-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Focus areas, coding prompts, questions to address..."
+            className="w-full p-3 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all leading-relaxed placeholder:text-dark-dim"
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+        <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-dark-border">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={loading}
+          >
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="sm" loading={loading}>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            loading={loading}
+          >
             Schedule Interview
           </Button>
         </div>

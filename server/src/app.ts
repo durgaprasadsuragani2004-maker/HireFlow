@@ -27,9 +27,11 @@ const rawOrigins = [
   env.CLIENT_URL,
 ];
 
+const allowsWildcard = rawOrigins.some((o) => o.trim() === '*');
+
 const allowedOrigins = new Set(
   rawOrigins
-    .map((o) => o.trim().replace(/\/+$/, ''))
+    .map((o) => o.trim().replace(/\/+$/, '').toLowerCase())
     .filter((o) => o && o !== '*')
 );
 
@@ -38,20 +40,53 @@ if (env.NODE_ENV !== 'production') {
   allowedOrigins.add('http://127.0.0.1:3000');
 }
 
+const isOriginAllowed = (origin: string): boolean => {
+  const normalized = origin.trim().replace(/\/+$/, '').toLowerCase();
+
+  // Allow if explicitly configured in CORS_ORIGIN or CLIENT_URL
+  if (allowedOrigins.has(normalized)) {
+    return true;
+  }
+
+  // Allow wildcard if configured
+  if (allowsWildcard) {
+    return true;
+  }
+
+  // Development/local origins
+  if (
+    env.NODE_ENV !== 'production' &&
+    (normalized.startsWith('http://localhost:') || normalized.startsWith('http://127.0.0.1:'))
+  ) {
+    return true;
+  }
+
+  // Support Vercel deployment domains (preview or production domains matching *.vercel.app)
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/.test(normalized)) {
+    return true;
+  }
+
+  return false;
+};
+
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
-      const normalizedOrigin = origin.trim().replace(/\/+$/, '');
-      if (allowedOrigins.has(normalizedOrigin)) {
+
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
-      return callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
+
+      // Reject origin cleanly without throwing 500 error
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    optionsSuccessStatus: 204,
   })
 );
 

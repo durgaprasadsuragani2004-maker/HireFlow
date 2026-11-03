@@ -6,9 +6,9 @@ import { Navbar } from '../components/layout/Navbar';
 import { Sidebar } from '../components/layout/Sidebar';
 
 export const metadata: Metadata = {
-  title: 'HireFlow ATS | Modern Applicant Tracking & Recruitment Platform',
+  title: 'HireFlow ATS | Modern Recruitment Platform',
   description:
-    'Full-stack Applicant Tracking System connecting enterprise companies, recruiters, and candidates with interactive Kanban pipelines, interview workflows, and deep recruitment analytics.',
+    'Enterprise-grade Applicant Tracking System connecting recruiters, candidates, and hiring managers with interactive Kanban pipelines, interview workflows, and deep analytics.',
 };
 
 export default function RootLayout({
@@ -18,13 +18,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased text-slate-900 bg-slate-50 min-h-screen flex flex-col">
+      <body className="antialiased text-dark-text bg-dark-app min-h-screen flex flex-col selection:bg-brand-500/20 selection:text-brand-300">
         <ToastProvider>
           <AuthProvider>
             <Navbar />
             <div className="flex-1 flex w-full">
               <Sidebar />
-              <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+              <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
                 {children}
               </main>
             </div>

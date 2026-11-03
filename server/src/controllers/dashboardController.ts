@@ -13,6 +13,15 @@ export class DashboardController {
     }
   }
 
+  async getCompanyDashboard(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const stats = await dashboardService.getCompanyDashboard(req.user!);
+      sendSuccess(res, stats);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getRecruiterDashboard(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = await dashboardService.getRecruiterDashboard(req.user!);

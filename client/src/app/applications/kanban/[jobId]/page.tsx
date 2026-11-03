@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, downloadResumeFile, getAuthenticatedResumeUrl } from '../../../../lib/api';
+import { normalizeJobStatus, formatDate } from '../../../../lib/utils';
 import { useAuth } from '../../../../providers/AuthContext';
 import { KanbanBoard } from '../../../../components/kanban/KanbanBoard';
 import { ScheduleInterviewModal } from '../../../../components/interviews/ScheduleInterviewModal';
@@ -26,6 +27,7 @@ import {
   Home,
   AlertCircle,
   Plus,
+  Briefcase,
 } from 'lucide-react';
 
 const STAGES = ['APPLIED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'SELECTED', 'REJECTED'];
@@ -60,23 +62,20 @@ export default function KanbanPage() {
       try {
         const res = await api.get('/jobs?limit=50');
         if (res.data.success && Array.isArray(res.data.data)) {
-          // Sort available jobs so active jobs with applications come first
           const sortedJobs = [...res.data.data].sort((a: any, b: any) => {
-            const aExpired =
-              a.status !== 'PUBLISHED' || (a.deadline && new Date(a.deadline) < new Date());
-            const bExpired =
-              b.status !== 'PUBLISHED' || (b.deadline && new Date(b.deadline) < new Date());
-            if (aExpired !== bExpired) return aExpired ? 1 : -1;
+            const aNorm = normalizeJobStatus(a);
+            const bNorm = normalizeJobStatus(b);
+            if (aNorm.isOpen !== bNorm.isOpen) return aNorm.isOpen ? -1 : 1;
             const aCount = a._count?.applications ?? 0;
             const bCount = b._count?.applications ?? 0;
             return bCount - aCount;
           });
 
-          // Recruiter company isolation: recruiters only manage their company's jobs
           let companyScopedJobs = sortedJobs;
-          if (user?.role === 'RECRUITER' && user.recruiterProfile?.companyId) {
+          const userCompanyId = user?.companyId || user?.recruiterProfile?.companyId;
+          if ((user?.role === 'RECRUITER' || user?.role === 'COMPANY') && userCompanyId) {
             companyScopedJobs = sortedJobs.filter(
-              (j: any) => j.companyId === user.recruiterProfile?.companyId
+              (j: any) => j.companyId === userCompanyId
             );
           }
 
@@ -91,14 +90,12 @@ export default function KanbanPage() {
           }
         }
       } catch {
-        // Fallback
         setLoading(false);
       }
     };
     fetchAvailableJobs();
   }, [rawJobId, router, user]);
 
-  // Load Kanban applications for the selected job
   const fetchKanban = async (id: string) => {
     if (!id || id === 'default') {
       setLoading(false);
@@ -142,9 +139,8 @@ export default function KanbanPage() {
         notes,
         rating,
       });
-      showToast('Candidate notes updated', 'success');
+      showToast('Candidate evaluation notes updated', 'success');
 
-      // Update local state
       if (kanbanData && rawJobId) {
         fetchKanban(rawJobId);
       }
@@ -156,65 +152,62 @@ export default function KanbanPage() {
     }
   };
 
-  const isCurrentJobExpired =
-    currentJob &&
-    (currentJob.status !== 'PUBLISHED' ||
-      (currentJob.deadline && new Date(currentJob.deadline) < new Date()));
+  const currentJobStatus = normalizeJobStatus(currentJob);
 
   return (
-    <AuthGuard allowedRoles={['SUPER_ADMIN', 'RECRUITER']}>
-      <div className="space-y-4">
+    <AuthGuard allowedRoles={['SUPER_ADMIN', 'COMPANY', 'RECRUITER']}>
+      <div className="space-y-4 max-w-full">
         {/* Breadcrumb Navigation */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-500">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-dark-dim">
           <Link
             href="/"
-            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-1 hover:text-brand-400 transition-colors"
           >
             <Home className="w-3.5 h-3.5" />
             <span>Home</span>
           </Link>
-          <span className="text-slate-400">/</span>
-          <Link href="/jobs" className="hover:text-blue-600 transition-colors">
+          <span className="text-dark-border">/</span>
+          <Link href="/jobs" className="hover:text-brand-400 transition-colors">
             Job Postings
           </Link>
-          <span className="text-slate-400">/</span>
-          <span className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-xs">
+          <span className="text-dark-border">/</span>
+          <span className="text-dark-text font-semibold truncate max-w-xs">
             {currentJob?.title || 'Recruitment Pipeline'}
           </span>
         </nav>
 
         {/* Header with Job Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-dark-border">
           <div>
             <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-600" />
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-                Recruitment Kanban Pipeline
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center">
+                <Layers className="w-4 h-4" />
+              </div>
+              <h1 className="text-xl font-bold text-dark-text tracking-tight">
+                Interactive Kanban Pipeline
               </h1>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-dark-muted mt-0.5">
               Drag candidates across stages to trigger automated workflows, notifications, and stage history.
             </p>
           </div>
 
           {/* Job Selector Dropdown */}
           {availableJobs.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <div className="flex items-center gap-2 text-xs font-semibold">
-                <span className="text-slate-500">Pipeline Job:</span>
+                <span className="text-dark-muted hidden sm:inline">Active Job:</span>
                 <select
                   value={rawJobId}
                   onChange={(e) => router.push(`/applications/kanban/${e.target.value}`)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs sm:max-w-md truncate"
+                  className="px-3.5 py-2 rounded-xl border border-dark-border bg-dark-input text-dark-text text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 max-w-xs sm:max-w-md truncate"
                 >
                   {availableJobs.map((j) => {
-                    const isExpired =
-                      j.status !== 'PUBLISHED' ||
-                      (j.deadline && new Date(j.deadline) < new Date());
+                    const norm = normalizeJobStatus(j);
                     const appCount = j._count?.applications;
                     return (
-                      <option key={j.id} value={j.id}>
-                        {j.title} ({j.company?.name}) — {isExpired ? '⚠️ Closed/Expired' : '🟢 Active'}
+                      <option key={j.id} value={j.id} className="bg-dark-card text-dark-text">
+                        {j.title} ({j.company?.name || 'Company'}) • {norm.label}
                         {typeof appCount === 'number' ? ` [${appCount} applicants]` : ''}
                       </option>
                     );
@@ -234,16 +227,21 @@ export default function KanbanPage() {
           )}
         </div>
 
-        {/* Expired Job Notice Banner */}
-        {isCurrentJobExpired && (
-          <div className="flex items-center gap-2.5 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+        {/* Expired / Closed Job Notice Banner */}
+        {currentJob && !currentJobStatus.isOpen && !currentJobStatus.isInvalid && (
+          <div className="flex items-center gap-2.5 p-3.5 bg-amber-950/30 border border-amber-800/40 rounded-2xl text-amber-200 text-xs">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
             <span>
-              <strong>Notice:</strong> This job posting is currently <strong>closed/expired</strong> (
-              {currentJob?.status !== 'PUBLISHED'
-                ? `Status: ${currentJob?.status}`
-                : `Expired on ${new Date(currentJob?.deadline).toLocaleDateString()}`}
-              ). You are viewing historical candidate records ({totalApplications} total applications).
+              <strong className="text-amber-100">Historical Archive Notice:</strong> This position is currently{' '}
+              <strong className="text-amber-100">
+                {currentJobStatus.isClosed ? 'closed/archived' : currentJobStatus.isDraft ? 'draft' : 'expired'}
+              </strong>
+              {currentJobStatus.isExpired && currentJob?.deadline ? (
+                <span> (Deadline: {formatDate(currentJob.deadline)})</span>
+              ) : currentJobStatus.isClosed ? (
+                <span> (Status: {currentJobStatus.rawStatus || 'ARCHIVED'})</span>
+              ) : null}
+              . You are viewing historical candidate records ({totalApplications} total applications).
             </span>
           </div>
         )}
@@ -251,67 +249,65 @@ export default function KanbanPage() {
         {/* Empty State when no jobs available */}
         {availableJobs.length === 0 && !loading ? (
           <div className="max-w-md mx-auto py-16 text-center space-y-4">
-            <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full w-16 h-16 mx-auto flex items-center justify-center text-slate-500">
-              <Layers className="w-8 h-8" />
+            <div className="p-4 bg-dark-card border border-dark-border rounded-2xl w-16 h-16 mx-auto flex items-center justify-center text-dark-muted">
+              <Layers className="w-8 h-8 text-brand-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              <h2 className="text-lg font-bold text-dark-text">
                 No Job Postings Found
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                {user?.role === 'RECRUITER'
+              <p className="text-xs text-dark-muted mt-1 leading-relaxed">
+                {user?.role === 'RECRUITER' || user?.role === 'COMPANY'
                   ? 'Your company has no active job postings yet. Create your first job posting to view its recruitment pipeline and track candidate applications.'
                   : 'No jobs are currently available in the system.'}
               </p>
             </div>
             <Link
               href="/jobs/new"
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-subtle transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Create First Job Posting</span>
             </Link>
           </div>
         ) : error ? (
-          /* Error State with Retry */
-          <div className="p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-rose-600" />
-            <h3 className="text-sm font-bold text-rose-900 dark:text-rose-200">
+          <div className="p-8 bg-rose-950/20 border border-rose-800/40 rounded-3xl flex flex-col items-center justify-center text-center space-y-3 max-w-md mx-auto my-8">
+            <AlertCircle className="w-8 h-8 text-rose-400" />
+            <h3 className="text-sm font-bold text-rose-200">
               Failed to Load Candidate Pipeline
             </h3>
-            <p className="text-xs text-rose-700 dark:text-rose-300 max-w-md">{error}</p>
+            <p className="text-xs text-rose-300 leading-relaxed">{error}</p>
             <Button
               variant="outline"
               size="sm"
               onClick={() => rawJobId && fetchKanban(rawJobId)}
-              className="border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 flex items-center gap-1.5"
+              className="border-rose-700 text-rose-300 hover:bg-rose-900/30 flex items-center gap-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Retry Pipeline</span>
             </Button>
           </div>
         ) : loading || !kanbanData ? (
-          /* Structured Stage Columns while loading — always visible labels and counts */
           <div className="flex gap-4 overflow-x-auto pb-6">
             {STAGES.map((stage) => (
               <div
                 key={stage}
-                className="flex flex-col w-72 sm:w-80 shrink-0 bg-slate-100/70 dark:bg-slate-900/60 rounded-2xl p-3 border border-slate-200 dark:border-slate-800 space-y-3"
+                className="flex flex-col w-72 sm:w-80 shrink-0 bg-dark-card/60 rounded-3xl p-3.5 border border-dark-border space-y-3"
               >
-                <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-3 px-1 border-b border-dark-border">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400 animate-pulse" />
-                    <h4 className="font-semibold text-xs text-slate-800 dark:text-slate-200 tracking-wider">
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-400 animate-pulse" />
+                    <h4 className="font-bold text-xs text-dark-text tracking-wider">
                       {stage}
                     </h4>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500">
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold border border-dark-border bg-dark-input text-dark-muted">
                     0
                   </span>
                 </div>
                 <div className="space-y-2">
-                  <Skeleton className="h-28 rounded-xl" />
-                  <Skeleton className="h-28 rounded-xl opacity-60" />
+                  <Skeleton className="h-28 rounded-2xl" />
+                  <Skeleton className="h-28 rounded-2xl opacity-60" />
                 </div>
               </div>
             ))}
@@ -335,21 +331,21 @@ export default function KanbanPage() {
             maxWidth="max-w-2xl"
           >
             <div className="space-y-5 text-xs">
-              <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-start justify-between p-4 bg-dark-input/60 rounded-2xl border border-dark-border">
                 <div>
-                  <div className="text-base font-bold text-slate-900 dark:text-white">
+                  <div className="text-base font-bold text-dark-text">
                     {selectedApplication.applicant?.fullName}
                   </div>
-                  <div className="text-slate-500 font-mono mt-0.5">
+                  <div className="text-dark-muted font-mono mt-0.5">
                     {selectedApplication.applicant?.user?.email}
                   </div>
                   {selectedApplication.applicant?.headline && (
-                    <div className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                    <div className="text-xs text-dark-muted mt-1">
                       {selectedApplication.applicant.headline}
                     </div>
                   )}
                   {selectedApplication.applicant?.resumeUrl && (
-                    <div className="mt-2.5 flex items-center gap-2">
+                    <div className="mt-3 flex items-center gap-2">
                       <button
                         type="button"
                         onClick={async () => {
@@ -366,26 +362,27 @@ export default function KanbanPage() {
                             );
                           }
                         }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:hover:bg-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-brand-500/15 hover:bg-brand-500/25 text-brand-300 border border-brand-500/30 rounded-xl transition"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>Resume Document</span>
+                        <span>Download Resume</span>
                       </button>
                       <a
                         href={getAuthenticatedResumeUrl(selectedApplication.applicant.resumeUrl)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-dark-card hover:bg-dark-hover text-dark-muted border border-dark-border rounded-xl transition"
                       >
-                        Open Tab
+                        <span>Open in New Tab</span>
+                        <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
                   )}
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5">
-                  <Badge variant="info">{selectedApplication.currentStage}</Badge>
-                  <span className="text-[11px] text-slate-400">
+                  <Badge variant="primary">{selectedApplication.currentStage}</Badge>
+                  <span className="text-[11px] text-dark-dim">
                     Applied: {new Date(selectedApplication.appliedAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -394,12 +391,15 @@ export default function KanbanPage() {
               {/* Skills */}
               {selectedApplication.applicant?.skills && (
                 <div>
-                  <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Key Skills</h4>
+                  <h4 className="font-bold text-dark-text mb-2">Verified Skills</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedApplication.applicant.skills.map((s: any) => (
-                      <Badge key={s.id} variant="outline">
+                      <span
+                        key={s.id}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-dark-input text-dark-muted border border-dark-border"
+                      >
                         {s.name} {s.yearsOfExperience ? `(${s.yearsOfExperience}y)` : ''}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -408,21 +408,21 @@ export default function KanbanPage() {
               {/* Cover Letter */}
               {selectedApplication.coverLetter && (
                 <div>
-                  <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Cover Letter / Statement
+                  <h4 className="font-bold text-dark-text mb-1">
+                    Candidate Cover Note
                   </h4>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap border border-slate-200 dark:border-slate-700">
+                  <div className="p-3.5 bg-dark-input/60 rounded-2xl text-dark-text leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap border border-dark-border">
                     {selectedApplication.coverLetter}
                   </div>
                 </div>
               )}
 
               {/* Recruiter Evaluation & Notes */}
-              <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-2xl space-y-3">
+              <div className="p-4 bg-brand-950/20 border border-brand-500/20 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span>Recruiter Notes & Rating</span>
+                  <h4 className="font-bold text-dark-text flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-brand-400" />
+                    <span>Recruiter Evaluation & Score</span>
                   </h4>
 
                   {/* Rating Stars */}
@@ -433,7 +433,7 @@ export default function KanbanPage() {
                         type="button"
                         onClick={() => setRating(star)}
                         className={`p-0.5 transition-colors ${
-                          star <= rating ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'
+                          star <= rating ? 'text-amber-400' : 'text-slate-600'
                         }`}
                       >
                         <Star className="w-4 h-4 fill-current" />
@@ -447,7 +447,7 @@ export default function KanbanPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Record interview notes, technical screening feedback, or team thoughts..."
-                  className="w-full p-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder-dark-dim"
                 />
 
                 <div className="flex justify-end">
@@ -457,20 +457,20 @@ export default function KanbanPage() {
                     loading={savingNotes}
                     disabled={savingNotes}
                   >
-                    Save Notes & Rating
+                    Save Evaluation
                   </Button>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between pt-3 border-t border-dark-border">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setInterviewModalApp(selectedApplication)}
                   className="flex items-center gap-1.5"
                 >
-                  <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                  <Calendar className="w-3.5 h-3.5 text-brand-400" />
                   <span>Schedule Interview</span>
                 </Button>
 
@@ -479,7 +479,7 @@ export default function KanbanPage() {
                   size="sm"
                   onClick={() => setSelectedApplication(null)}
                 >
-                  Close
+                  Close Review
                 </Button>
               </div>
             </div>

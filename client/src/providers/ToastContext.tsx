@@ -27,7 +27,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback((rawMessage: string, type: ToastType = 'info') => {
-    // Sanitize technical messages to ensure user-friendly presentation
     let message = rawMessage;
     if (!message || typeof message !== 'string') {
       message = 'An unexpected error occurred. Please try again.';
@@ -55,13 +54,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <div
       style={{
         position: 'fixed',
-        top: '1.25rem',
+        bottom: '1.5rem',
         right: '1.5rem',
         zIndex: 999999,
         pointerEvents: 'none',
         display: 'flex',
-        flexDirection: 'column',
-        gap: '0.625rem',
+        flexDirection: 'column-reverse',
+        gap: '0.5rem',
         maxWidth: '24rem',
         width: '100%',
       }}
@@ -72,21 +71,21 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         <div
           key={toast.id}
           style={{ pointerEvents: 'auto' }}
-          className={`flex items-start justify-between gap-3 p-3.5 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 animate-in slide-in-from-top-2 fade-in ${
+          className={`flex items-start justify-between gap-3 p-3.5 rounded-2xl shadow-dropdown border backdrop-blur-md transition-all duration-200 animate-in slide-in-from-bottom-2 fade-in ${
             toast.type === 'success'
-              ? 'bg-emerald-950/95 border-emerald-600/70 text-emerald-100 shadow-emerald-950/40'
+              ? 'bg-[#1C2940]/95 border-emerald-500/50 text-[#F1F5F9] shadow-emerald-950/30'
               : toast.type === 'error'
-              ? 'bg-rose-950/95 border-rose-600/70 text-rose-100 shadow-rose-950/40'
+              ? 'bg-[#1C2940]/95 border-rose-500/50 text-[#F1F5F9] shadow-rose-950/30'
               : toast.type === 'warning'
-              ? 'bg-amber-950/95 border-amber-600/70 text-amber-100 shadow-amber-950/40'
-              : 'bg-slate-900/95 border-slate-700/70 text-slate-100 shadow-slate-950/40'
+              ? 'bg-[#1C2940]/95 border-amber-500/50 text-[#F1F5F9] shadow-amber-950/30'
+              : 'bg-[#1C2940]/95 border-indigo-500/50 text-[#F1F5F9] shadow-indigo-950/30'
           }`}
         >
           <div className="flex items-start gap-2.5 text-xs font-medium leading-relaxed">
             {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />}
             {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />}
             {toast.type === 'warning' && <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />}
-            {toast.type === 'info' && <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />}
+            {toast.type === 'info' && <Info className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />}
             <span className="break-words">{toast.message}</span>
           </div>
           <button
@@ -104,13 +103,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {mounted && typeof document !== 'undefined' ? createPortal(toastContainer, document.body) : null}
+      {mounted && createPortal(toastContainer, document.body)}
     </ToastContext.Provider>
   );
 };
 
 export const useToast = () => {
   const context = useContext(ToastContext);
-  if (!context) throw new Error('useToast must be used within ToastProvider');
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
   return context;
 };

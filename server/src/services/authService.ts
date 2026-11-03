@@ -343,13 +343,16 @@ export class AuthService {
     return this.getMe(userId);
   }
 
-  async adminGetUsers(params: {
-    page?: number;
-    limit?: number;
-    role?: string;
-    status?: string;
-    search?: string;
-  }) {
+  async adminGetUsers(
+    params: {
+      page?: number;
+      limit?: number;
+      role?: string;
+      status?: string;
+      search?: string;
+    },
+    currentUser?: AuthUser
+  ) {
     const page = Math.max(1, params.page || 1);
     const limit = Math.min(100, Math.max(1, params.limit || 20));
     const skip = (page - 1) * limit;
@@ -357,7 +360,14 @@ export class AuthService {
     const where: any = {};
     if (params.role) where.role = params.role;
     if (params.status) where.status = params.status;
-    if (params.search) {
+
+    if (currentUser?.role === ROLES.COMPANY) {
+      const companyId = currentUser.companyId;
+      where.OR = [
+        { recruiterProfile: { companyId } },
+        { companyId },
+      ];
+    } else if (params.search) {
       where.OR = [
         { email: { contains: params.search } },
         { applicantProfile: { fullName: { contains: params.search } } },
@@ -374,6 +384,15 @@ export class AuthService {
           email: true,
           role: true,
           status: true,
+          companyId: true,
+          company: {
+            select: {
+              id: true,
+              name: true,
+              logo: true,
+              website: true,
+            },
+          },
           createdAt: true,
           recruiterProfile: {
             include: {

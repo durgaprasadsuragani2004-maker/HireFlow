@@ -2,34 +2,57 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'outline';
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'outline';
+  dot?: boolean;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
   className,
   variant = 'default',
+  dot = false,
   children,
   ...props
 }) => {
   const variantStyles = {
-    default: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
-    warning: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
-    danger: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
-    info: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
-    purple: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800',
-    outline: 'border border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-300',
+    default:
+      'bg-[#1E293B] text-[#A1AEC2] border-[#2B3950]',
+    primary:
+      'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+    success:
+      'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+    warning:
+      'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    danger:
+      'bg-rose-500/15 text-rose-300 border-rose-500/30',
+    info:
+      'bg-sky-500/15 text-sky-300 border-sky-500/30',
+    purple:
+      'bg-violet-500/15 text-violet-300 border-violet-500/30',
+    outline:
+      'border border-[#2B3950] text-[#A1AEC2] bg-[#151F32]/60',
+  };
+
+  const dotColors = {
+    default: 'bg-slate-400',
+    primary: 'bg-indigo-500',
+    success: 'bg-emerald-500',
+    warning: 'bg-amber-500',
+    danger: 'bg-rose-500',
+    info: 'bg-blue-500',
+    purple: 'bg-violet-500',
+    outline: 'bg-slate-400',
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors',
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-colors leading-normal',
         variantStyles[variant],
         className
       )}
       {...props}
     >
+      {dot && <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', dotColors[variant])} />}
       {children}
     </span>
   );

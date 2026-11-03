@@ -7,8 +7,14 @@ import { useToast } from './ToastContext';
 export interface User {
   id: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'RECRUITER' | 'APPLICANT';
+  role: 'SUPER_ADMIN' | 'COMPANY' | 'RECRUITER' | 'APPLICANT';
   status: 'ACTIVE' | 'SUSPENDED';
+  companyId?: string | null;
+  company?: {
+    id: string;
+    name: string;
+    logo?: string | null;
+  } | null;
   recruiterProfile?: {
     id: string;
     companyId: string;
@@ -19,14 +25,20 @@ export interface User {
     id: string;
     fullName: string;
     resumeUrl?: string;
+    phone?: string | null;
+    location?: string | null;
+    headline?: string | null;
+    summary?: string | null;
+    linkedinUrl?: string | null;
+    githubUrl?: string | null;
   } | null;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (data: any) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -75,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, [refreshUser]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
@@ -84,8 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('hireflow_refresh_token', tokens.refreshToken);
       setUser(loggedInUser);
       showToast(`Welcome back, ${loggedInUser.email}!`, 'success');
+      return loggedInUser;
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
+      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
       showToast(msg, 'error');
       throw err;
     } finally {
@@ -93,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (data: any) => {
+  const register = async (data: any): Promise<User> => {
     setLoading(true);
     try {
       const res = await api.post('/auth/register', data);
@@ -102,8 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('hireflow_refresh_token', tokens.refreshToken);
       setUser(registeredUser);
       showToast('Account registered successfully!', 'success');
+      return registeredUser;
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Registration failed.';
+      const msg = err.response?.data?.message || 'Registration failed.';
       showToast(msg, 'error');
       throw err;
     } finally {

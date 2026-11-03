@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { APPLICATION_STAGES, JOB_STATUS, ROLES } from '../config/constants';
 import { AuthUser } from '../types';
+import { AppError } from '../middleware/errorHandler';
 
 export class DashboardService {
   async getAdminDashboard() {
@@ -94,6 +95,209 @@ export class DashboardService {
       })),
       recentUsers,
       recentJobs,
+    };
+  }
+
+  async getCompanyDashboard(companyUser: AuthUser) {
+    const companyId = companyUser.companyId;
+    if (!companyId) {
+      throw new AppError('No organization associated with this company account', 403);
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      include: {
+        recruiters: {
+          include: {
+            user: { select: { id: true, email: true, status: true, createdAt: true } },
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      throw new AppError('Organization not found', 404);
+    }
+
+    const [
+      activeJobs,
+      totalJobs,
+      closedJobs,
+      totalApplications,
+      candidatesInScreening,
+      shortlistedCandidates,
+      interviewsCount,
+      selectedCandidates,
+      rejectedCandidates,
+      totalRecruiters,
+    ] = await Promise.all([
+      prisma.job.count({ where: { companyId, status: JOB_STATUS.PUBLISHED } }),
+      prisma.job.count({ where: { companyId } }),
+      prisma.job.count({
+        where: {
+          companyId,
+          OR: [{ status: JOB_STATUS.ARCHIVED }, { status: JOB_STATUS.DRAFT }],
+        },
+      }),
+      prisma.application.count({ where: { job: { companyId } } }),
+      prisma.application.count({
+        where: { job: { companyId }, currentStage: APPLICATION_STAGES.SCREENING },
+      }),
+      prisma.application.count({
+        where: { job: { companyId }, currentStage: APPLICATION_STAGES.SHORTLISTED },
+      }),
+      prisma.interview.count({
+        where: { application: { job: { companyId } }, status: 'SCHEDULED' },
+      }),
+      prisma.application.count({
+        where: { job: { companyId }, currentStage: APPLICATION_STAGES.SELECTED },
+      }),
+      prisma.application.count({
+        where: { job: { companyId }, currentStage: APPLICATION_STAGES.REJECTED },
+      }),
+      prisma.recruiterProfile.count({ where: { companyId } }),
+    ]);
+
+    // Recruitment Funnel
+    const stageCounts = await prisma.application.groupBy({
+      by: ['currentStage'],
+      where: { job: { companyId } },
+      _count: { id: true },
+    });
+
+    const funnelStages = [
+      APPLICATION_STAGES.APPLIED,
+      APPLICATION_STAGES.SCREENING,
+      APPLICATION_STAGES.SHORTLISTED,
+      APPLICATION_STAGES.INTERVIEW,
+      APPLICATION_STAGES.SELECTED,
+      APPLICATION_STAGES.REJECTED,
+    ];
+
+    const funnel = funnelStages.map((stage) => {
+      const match = stageCounts.find((s) => s.currentStage === stage);
+      return {
+        stage,
+        count: match?._count.id || 0,
+      };
+    });
+
+    // Company jobs
+    const jobs = await prisma.job.findMany({
+      where: { companyId },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        location: true,
+        employmentType: true,
+        experienceLevel: true,
+        createdAt: true,
+        recruiter: {
+          select: {
+            title: true,
+            user: { select: { email: true } },
+          },
+        },
+        _count: { select: { applications: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    // Upcoming interviews
+    const upcomingInterviews = await prisma.interview.findMany({
+      where: {
+        application: { job: { companyId } },
+        status: 'SCHEDULED',
+      },
+      include: {
+        application: {
+          include: {
+            applicant: { select: { fullName: true } },
+            job: { select: { title: true } },
+          },
+        },
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      take: 6,
+    });
+
+    // Recent activity
+    const recentActivity = await prisma.applicationStageHistory.findMany({
+      where: { application: { job: { companyId } } },
+      include: {
+        application: {
+          include: {
+            applicant: { select: { fullName: true } },
+            job: { select: { title: true } },
+          },
+        },
+        changedBy: { select: { email: true, role: true } },
+      },
+      orderBy: { changedAt: 'desc' },
+      take: 8,
+    });
+
+    return {
+      company: {
+        id: company.id,
+        name: company.name,
+        logo: company.logo,
+        description: company.description,
+        website: company.website,
+        industry: company.industry,
+        location: company.location,
+        companySize: company.companySize,
+        contactEmail: company.contactEmail,
+        contactPhone: company.contactPhone,
+      },
+      metrics: {
+        activeJobs,
+        totalJobs,
+        closedJobs,
+        totalApplications,
+        candidatesInScreening,
+        shortlistedCandidates,
+        interviewsCount,
+        activeInterviews: interviewsCount,
+        selectedCandidates,
+        rejectedCandidates,
+        totalRecruiters,
+      },
+      funnel,
+      recruiters: company.recruiters.map((r) => ({
+        id: r.id,
+        userId: r.user.id,
+        email: r.user.email,
+        title: r.title,
+        status: r.user.status,
+        joinedAt: r.user.createdAt,
+      })),
+      jobs: jobs.map((j) => ({
+        id: j.id,
+        title: j.title,
+        status: j.status,
+        location: j.location,
+        employmentType: j.employmentType,
+        experienceLevel: j.experienceLevel,
+        recruiterEmail: j.recruiter?.user?.email,
+        recruiterTitle: j.recruiter?.title,
+        applicationsCount: j._count.applications,
+      })),
+      companyJobs: jobs.map((j) => ({
+        id: j.id,
+        title: j.title,
+        status: j.status,
+        location: j.location,
+        employmentType: j.employmentType,
+        experienceLevel: j.experienceLevel,
+        recruiterEmail: j.recruiter?.user?.email,
+        recruiterTitle: j.recruiter?.title,
+        applicationsCount: j._count.applications,
+      })),
+      upcomingInterviews,
+      recentActivity,
     };
   }
 

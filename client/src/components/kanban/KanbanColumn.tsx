@@ -29,31 +29,17 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-72 sm:w-80 shrink-0 bg-slate-100/70 dark:bg-slate-900/60 rounded-2xl p-3 border transition-colors ${
+      className={`flex flex-col w-72 sm:w-80 shrink-0 bg-[#151F32] rounded-3xl p-3.5 border transition-all duration-200 ${
         isOver
-          ? 'border-blue-500 bg-blue-50/40 dark:bg-blue-950/20'
-          : 'border-slate-200 dark:border-slate-800'
+          ? 'border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/30 shadow-card-hover'
+          : 'border-[#2B3950]'
       }`}
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/80 dark:border-slate-800 mb-3">
+      <div className="flex items-center justify-between pb-3 px-1 border-b border-[#2B3950] mb-3">
         <div className="flex items-center gap-2">
-          <span
-            className={`w-2.5 h-2.5 rounded-full ${
-              stage === 'APPLIED'
-                ? 'bg-blue-500'
-                : stage === 'SCREENING'
-                ? 'bg-purple-500'
-                : stage === 'SHORTLISTED'
-                ? 'bg-amber-500'
-                : stage === 'INTERVIEW'
-                ? 'bg-indigo-500'
-                : stage === 'SELECTED'
-                ? 'bg-emerald-500'
-                : 'bg-rose-500'
-            }`}
-          />
-          <h4 className="font-semibold text-xs text-slate-800 dark:text-slate-200 tracking-wider">
+          <span className={`w-2.5 h-2.5 rounded-full ${colors.dot} shrink-0`} />
+          <h4 className="font-bold text-xs text-[#F1F5F9] tracking-wider">
             {stage}
           </h4>
         </div>
@@ -65,11 +51,11 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       </div>
 
       {/* Cards List */}
-      <div className="flex-1 overflow-y-auto max-h-[calc(100vh-250px)] pr-1">
+      <div className="flex-1 overflow-y-auto max-h-[calc(100vh-270px)] pr-1 space-y-1">
         {applications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-400 p-3 text-center">
-            <span className="font-medium text-slate-500 dark:text-slate-400">No applications in this stage</span>
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Drag candidates here to advance</span>
+          <div className="flex flex-col items-center justify-center h-32 border border-dashed border-[#2B3950] rounded-2xl text-xs text-[#64748B] p-3 text-center bg-[#101726]/40">
+            <span className="font-semibold text-[#A1AEC2]">Empty Stage</span>
+            <span className="text-[11px] text-[#64748B] mt-0.5">Drag candidates here to advance</span>
           </div>
         ) : (
           applications.map((app) => (

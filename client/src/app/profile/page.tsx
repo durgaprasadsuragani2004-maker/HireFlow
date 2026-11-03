@@ -21,6 +21,7 @@ import {
   Mail,
   Phone,
   Building2,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -58,10 +59,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      if (user.role === 'APPLICANT' && user.applicantProfile) {
+      if ((user.role === 'APPLICANT' || user.role === 'SUPER_ADMIN') && user.applicantProfile) {
         setFullName(user.applicantProfile.fullName || '');
-      } else if (user.role === 'RECRUITER') {
-        // Fetch full company profile for recruiter
+        setPhone(user.applicantProfile.phone || '');
+        setLocation(user.applicantProfile.location || '');
+        setHeadline(user.applicantProfile.headline || '');
+        setSummary(user.applicantProfile.summary || '');
+        setLinkedinUrl(user.applicantProfile.linkedinUrl || '');
+        setGithubUrl(user.applicantProfile.githubUrl || '');
+      } else if (user.role === 'SUPER_ADMIN') {
+        setFullName('Super Administrator');
+      } else if (user.role === 'RECRUITER' || user.role === 'COMPANY') {
         api
           .get('/companies')
           .then((res) => {
@@ -77,7 +85,6 @@ export default function ProfilePage() {
               setCompanyContactPhone(c.contactPhone || '');
               setCompanyDesc(c.description || '');
 
-              // Fetch analytics for this company
               setLoadingAnalytics(true);
               api
                 .get(`/companies/${c.id}/analytics`)
@@ -144,7 +151,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      if (user?.role === 'APPLICANT') {
+      if (user?.role === 'APPLICANT' || user?.role === 'SUPER_ADMIN') {
         await api.patch('/auth/me', {
           fullName,
           headline,
@@ -156,8 +163,7 @@ export default function ProfilePage() {
         });
         showToast('Profile updated successfully', 'success');
         await refreshUser();
-      } else if (user?.role === 'RECRUITER') {
-        // Recruiter updating permitted company profile fields
+      } else if (user?.role === 'RECRUITER' || user?.role === 'COMPANY') {
         await api.patch('/companies', {
           website: companyWebsite.trim() || null,
           industry: companyIndustry.trim() || null,
@@ -179,39 +185,50 @@ export default function ProfilePage() {
   return (
     <AuthGuard>
       {!user ? null : (
-        <div className="max-w-4xl mx-auto py-4 space-y-6">
+        <div className="max-w-4xl mx-auto py-2 space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {user.role === 'RECRUITER' ? 'Organization & Company Profile' : 'Account Settings'}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {user.role === 'RECRUITER'
-                ? 'Manage verified organization credentials, contact endpoints, and view company recruitment funnel.'
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center">
+                {user.role === 'RECRUITER' || user.role === 'COMPANY' ? (
+                  <Building2 className="w-4 h-4" />
+                ) : (
+                  <User className="w-4 h-4" />
+                )}
+              </div>
+              <h1 className="text-2xl font-bold text-dark-text tracking-tight">
+                {user.role === 'RECRUITER' || user.role === 'COMPANY'
+                  ? 'Organization & Company Profile'
+                  : 'Account & Profile Settings'}
+              </h1>
+            </div>
+            <p className="text-xs text-dark-muted mt-1 ml-10">
+              {user.role === 'RECRUITER' || user.role === 'COMPANY'
+                ? 'Manage verified organization parameters, contact endpoints, and view company recruitment funnel.'
                 : 'Manage your credentials, professional profile, and candidate resume document.'}
             </p>
           </div>
 
           {/* Resume Upload Section for Applicants */}
           {user.role === 'APPLICANT' && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+            <div className="bg-dark-card border border-dark-border rounded-3xl p-6 sm:p-8 shadow-card space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                <div className="p-2.5 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <h2 className="text-sm font-bold text-dark-text">
                     Resume Document Management
                   </h2>
-                  <p className="text-xs text-slate-500">
-                    Upload your latest resume (PDF, DOC, DOCX up to 5MB). Stored via secure cloud storage abstraction.
+                  <p className="text-xs text-dark-muted">
+                    Upload your latest resume (PDF, DOC, DOCX up to 5MB). Stored securely via cloud storage abstraction.
                   </p>
                 </div>
               </div>
 
               {user.applicantProfile?.resumeUrl && (
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="p-4 bg-emerald-950/30 border border-emerald-800/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>Current Resume is Active & Attached to Applications</span>
                   </div>
 
@@ -220,7 +237,7 @@ export default function ProfilePage() {
                       type="button"
                       onClick={handleDownloadApplicantResume}
                       disabled={downloadingResume}
-                      className="px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 rounded-lg flex items-center gap-1 shadow-xs hover:bg-emerald-50 disabled:opacity-60"
+                      className="px-3.5 py-1.5 text-xs font-bold bg-dark-card border border-emerald-700/50 text-emerald-300 rounded-xl flex items-center gap-1 shadow-subtle hover:bg-emerald-950/40 disabled:opacity-60"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>{downloadingResume ? 'Downloading...' : 'Download Resume'}</span>
@@ -229,20 +246,21 @@ export default function ProfilePage() {
                       href={getAuthenticatedResumeUrl(user.applicantProfile.resumeUrl)}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg transition"
+                      className="px-3 py-1.5 text-xs font-semibold bg-dark-input hover:bg-dark-hover text-dark-muted border border-dark-border rounded-xl transition flex items-center gap-1"
                     >
-                      Open Tab
+                      <span>Open Tab</span>
+                      <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
                 </div>
               )}
 
-              <form onSubmit={handleResumeUpload} className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <form onSubmit={handleResumeUpload} className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                  className="text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-slate-300"
+                  className="text-xs text-dark-muted file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-500/15 file:text-brand-300 hover:file:bg-brand-500/25 file:transition"
                 />
                 <Button
                   type="submit"
@@ -258,214 +276,243 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Profile Details Form */}
-          <form
-            onSubmit={handleSaveProfile}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4"
-          >
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              {user.role === 'RECRUITER' ? 'Company Profile Information' : 'Personal Details'}
+          {/* Profile Form (Applicant Profile OR Recruiter Company) */}
+          <div className="bg-dark-card border border-dark-border rounded-3xl p-6 sm:p-8 shadow-card">
+            <h2 className="text-sm font-bold text-dark-text mb-4 pb-2 border-b border-dark-border">
+              {user.role === 'RECRUITER' || user.role === 'COMPANY' ? 'Company Details' : 'Professional Profile'}
             </h2>
 
-            {user.role === 'APPLICANT' ? (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              {user.role === 'APPLICANT' || user.role === 'SUPER_ADMIN' ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Professional Headline
+                      </label>
+                      <input
+                        type="text"
+                        value={headline}
+                        onChange={(e) => setHeadline(e.target.value)}
+                        placeholder="e.g. Senior Full-Stack Engineer"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Professional Headline
-                  </label>
-                  <input
-                    type="text"
-                    value={headline}
-                    onChange={(e) => setHeadline(e.target.value)}
-                    placeholder="Senior Full Stack Engineer | React & Node.js"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+1 (555) 000-0000"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="San Francisco, CA or Remote"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Professional Summary
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={summary}
-                    onChange={(e) => setSummary(e.target.value)}
-                    className="w-full p-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        LinkedIn URL
+                      </label>
+                      <input
+                        type="url"
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        placeholder="https://linkedin.com/in/..."
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        GitHub Profile
+                      </label>
+                      <input
+                        type="url"
+                        value={githubUrl}
+                        onChange={(e) => setGithubUrl(e.target.value)}
+                        placeholder="https://github.com/..."
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Phone Number
+                    <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      Professional Summary
                     </label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <textarea
+                      rows={4}
+                      value={summary}
+                      onChange={(e) => setSummary(e.target.value)}
+                      placeholder="Brief background summary highlighting key accomplishments..."
+                      className="w-full p-3.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all leading-relaxed placeholder:text-dark-dim"
                     />
                   </div>
+                </>
+              ) : user.role === 'RECRUITER' || user.role === 'COMPANY' ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Company Name (Managed by Organization Admin)
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={companyName}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input/40 text-dark-dim cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Industry
+                      </label>
+                      <input
+                        type="text"
+                        value={companyIndustry}
+                        onChange={(e) => setCompanyIndustry(e.target.value)}
+                        placeholder="e.g. Enterprise Cloud & AI"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Website
+                      </label>
+                      <input
+                        type="url"
+                        value={companyWebsite}
+                        onChange={(e) => setCompanyWebsite(e.target.value)}
+                        placeholder="https://company.com"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Headquarters Location
+                      </label>
+                      <input
+                        type="text"
+                        value={companyLocation}
+                        onChange={(e) => setCompanyLocation(e.target.value)}
+                        placeholder="San Francisco, CA"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Company Size
+                      </label>
+                      <select
+                        value={companySize}
+                        onChange={(e) => setCompanySize(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                      >
+                        <option value="1-10" className="bg-dark-card">1-10 employees</option>
+                        <option value="11-50" className="bg-dark-card">11-50 employees</option>
+                        <option value="51-200" className="bg-dark-card">51-200 employees</option>
+                        <option value="201-500" className="bg-dark-card">201-500 employees</option>
+                        <option value="500+" className="bg-dark-card">500+ employees</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Contact Email
+                      </label>
+                      <input
+                        type="email"
+                        value={companyContactEmail}
+                        onChange={(e) => setCompanyContactEmail(e.target.value)}
+                        placeholder="recruiting@company.com"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                        Contact Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={companyContactPhone}
+                        onChange={(e) => setCompanyContactPhone(e.target.value)}
+                        placeholder="+1 (555) 000-0000"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                      />
+                    </div>
+                  </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Location (City, State)
+                    <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      Company Overview & Culture
                     </label>
-                    <input
-                      type="text"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <textarea
+                      rows={4}
+                      value={companyDesc}
+                      onChange={(e) => setCompanyDesc(e.target.value)}
+                      placeholder="About our mission, culture, benefits, and hiring standards..."
+                      className="w-full p-3.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all leading-relaxed placeholder:text-dark-dim"
                     />
                   </div>
-                </div>
-              </>
-            ) : (
-              /* Recruiter Company Profile Form */
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Associated Organization Name
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={companyName}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed font-semibold"
-                    />
-                    <span className="text-[11px] text-slate-400 mt-1 block">
-                      Assigned by Super Admin. Cannot be transferred across tenants.
-                    </span>
-                  </div>
+                </>
+              ) : null}
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Industry
-                    </label>
-                    <input
-                      type="text"
-                      value={companyIndustry}
-                      onChange={(e) => setCompanyIndustry(e.target.value)}
-                      placeholder="e.g. Enterprise Cloud & AI"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Headquarters Location
-                    </label>
-                    <input
-                      type="text"
-                      value={companyLocation}
-                      onChange={(e) => setCompanyLocation(e.target.value)}
-                      placeholder="e.g. San Francisco, CA"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Website URL
-                    </label>
-                    <input
-                      type="url"
-                      value={companyWebsite}
-                      onChange={(e) => setCompanyWebsite(e.target.value)}
-                      placeholder="https://example.com"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Company Size
-                    </label>
-                    <select
-                      value={companySize}
-                      onChange={(e) => setCompanySize(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="1-10">1-10 employees</option>
-                      <option value="11-50">11-50 employees</option>
-                      <option value="51-200">51-200 employees</option>
-                      <option value="201-1000">201-1000 employees</option>
-                      <option value="1000+">1000+ Enterprise</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Contact Email
-                    </label>
-                    <input
-                      type="email"
-                      value={companyContactEmail}
-                      onChange={(e) => setCompanyContactEmail(e.target.value)}
-                      placeholder="talent@company.com"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Contact Phone
-                    </label>
-                    <input
-                      type="text"
-                      value={companyContactPhone}
-                      onChange={(e) => setCompanyContactPhone(e.target.value)}
-                      placeholder="+1 (555) 123-4567"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Company Description & Mission
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={companyDesc}
-                    onChange={(e) => setCompanyDesc(e.target.value)}
-                    placeholder="Describe your organization, work culture, and value proposition for prospective candidates..."
-                    className="w-full p-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+              <div className="flex justify-end pt-3 border-t border-dark-border">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  loading={savingProfile}
+                  disabled={savingProfile}
+                >
+                  <Save className="w-3.5 h-3.5 mr-1.5" /> Save Changes
+                </Button>
               </div>
-            )}
+            </form>
+          </div>
 
-            <div className="flex justify-end pt-2">
-              <Button type="submit" variant="primary" size="sm" loading={savingProfile}>
-                <Save className="w-3.5 h-3.5 mr-1" /> Save Changes
-              </Button>
-            </div>
-          </form>
-
-          {/* Recruiter Company Recruitment Funnel Chart */}
-          {user.role === 'RECRUITER' && (
+          {/* Embedded Company Funnel for Recruiters and Company Accounts */}
+          {(user.role === 'RECRUITER' || user.role === 'COMPANY') && companyId && (
             <CompanyFunnelChart
               funnel={companyAnalytics?.funnel || []}
               totalApplications={companyAnalytics?.totalApplications || 0}
-              totalJobs={companyAnalytics?.totalJobs || 0}
+              totalJobs={companyAnalytics?.activeJobs || 0}
               loading={loadingAnalytics}
               companyName={companyName}
             />

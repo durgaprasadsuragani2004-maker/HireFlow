@@ -15,7 +15,8 @@
     "prisma:migrate": "node scripts/prisma-runner.js migrate",
     "prisma:generate:pg": "prisma generate --schema=prisma/schema.postgresql.prisma",
     "prisma:migrate:pg": "prisma migrate deploy --schema=prisma/schema.postgresql.prisma",
-    "prisma:seed:pg": "ts-node src/seeds/seed.ts"
+    "prisma:seed:pg": "ts-node src/seeds/seed.ts",
+    "migrate:prod": "ts-node scripts/migrate-sqlite-to-postgres.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1153.0",

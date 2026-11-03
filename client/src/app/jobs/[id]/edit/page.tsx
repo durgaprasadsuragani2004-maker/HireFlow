@@ -8,7 +8,7 @@ import { useToast } from '../../../../providers/ToastContext';
 import { Button } from '../../../../components/ui/Button';
 import { AuthGuard } from '../../../../components/layout/AuthGuard';
 import { Skeleton } from '../../../../components/ui/Skeleton';
-import { ArrowLeft, Home, Building, UserCheck, AlertCircle, Save } from 'lucide-react';
+import { ArrowLeft, Home, Building, UserCheck, AlertCircle, Save, Building2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EditJobPage() {
@@ -20,9 +20,12 @@ export default function EditJobPage() {
   const { showToast } = useToast();
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isCompany = user?.role === 'COMPANY';
+  const companyDisplayName = (user as any)?.company?.name || (user as any)?.companyProfile?.name || 'Company Account';
 
-  // Company and Recruiter state (for Super Admin)
+  // Company and Recruiter state (for Super Admin & Company)
   const [companies, setCompanies] = useState<any[]>([]);
+  const [companyRecruiters, setCompanyRecruiters] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedRecruiterId, setSelectedRecruiterId] = useState('');
 
@@ -34,7 +37,7 @@ export default function EditJobPage() {
   const [skills, setSkills] = useState('');
   const [location, setLocation] = useState('');
   const [employmentType, setEmploymentType] = useState('FULL_TIME');
-  const [experienceLevel, setExperienceLevel] = useState('SENIOR');
+  const [experienceLevel, setExperienceLevel] = useState('SENIOR_LEVEL');
   const [salaryMin, setSalaryMin] = useState<number | ''>('');
   const [salaryMax, setSalaryMax] = useState<number | ''>('');
   const [deadline, setDeadline] = useState('');
@@ -45,7 +48,6 @@ export default function EditJobPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Fetch companies list for Super Admin
   useEffect(() => {
     if (isSuperAdmin) {
       api
@@ -55,13 +57,21 @@ export default function EditJobPage() {
             setCompanies(res.data.data);
           }
         })
-        .catch(() => {
-          // ignore
-        });
+        .catch(() => {});
+    } else if (isCompany) {
+      api
+        .get('/companies')
+        .then((res) => {
+          if (res.data.success && res.data.data) {
+            const c = res.data.data;
+            const recs = c.recruiters || [];
+            setCompanyRecruiters(recs);
+          }
+        })
+        .catch(() => {});
     }
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, isCompany]);
 
-  // Fetch existing Job details
   useEffect(() => {
     if (!jobId) return;
 
@@ -73,7 +83,15 @@ export default function EditJobPage() {
         if (res.data.success) {
           const j = res.data.data;
 
-          // Check recruiter authorization
+          if (
+            isCompany &&
+            user?.companyId &&
+            j.companyId !== user.companyId
+          ) {
+            setErrorMessage('You do not have permission to edit jobs for another company.');
+            return;
+          }
+
           if (
             user?.role === 'RECRUITER' &&
             user.recruiterProfile?.companyId &&
@@ -99,15 +117,11 @@ export default function EditJobPage() {
 
           if (j.deadline) {
             const d = new Date(j.deadline);
-            if (!isNaN(d.getTime())) {
-              setDeadline(d.toISOString().split('T')[0]);
-            }
+            setDeadline(d.toISOString().split('T')[0]);
           }
         }
       } catch (err: any) {
-        setErrorMessage(
-          err.response?.data?.message || 'Failed to load job details. Job may not exist.'
-        );
+        setErrorMessage(err.response?.data?.message || 'Failed to load job details');
       } finally {
         setLoadingJob(false);
       }
@@ -131,11 +145,6 @@ export default function EditJobPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || (user.role !== 'RECRUITER' && user.role !== 'SUPER_ADMIN')) {
-      showToast('Unauthorized to edit this job posting', 'error');
-      return;
-    }
-
     setFieldErrors({});
 
     const localErrors: Record<string, string> = {};
@@ -156,13 +165,25 @@ export default function EditJobPage() {
       localErrors.salaryMin = 'Minimum salary cannot exceed maximum salary';
     }
 
-    if (deadline && status === 'PUBLISHED') {
-      const selectedDate = new Date(deadline);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        localErrors.deadline =
-          'Cannot publish job with a past deadline. Please set a future date or unpublish.';
+    // Deadline validation: reject dates earlier than today
+    if (deadline) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (deadline < todayStr) {
+        localErrors.deadline = 'Application deadline cannot be in the past.';
+      }
+    }
+
+    // HR assignment validations
+    if (isSuperAdmin) {
+      if (!selectedCompanyId) {
+        localErrors.companyId = 'Please select a company for this job post';
+      }
+      if (status === 'PUBLISHED' && (!selectedRecruiterId || availableRecruiters.length === 0)) {
+        localErrors.recruiterId = 'HR/Recruiter required — this company has no eligible HR accounts.';
+      }
+    } else if (isCompany) {
+      if (status === 'PUBLISHED' && (!selectedRecruiterId || companyRecruiters.length === 0)) {
+        localErrors.recruiterId = 'HR/Recruiter required — this company has no eligible HR accounts.';
       }
     }
 
@@ -186,17 +207,19 @@ export default function EditJobPage() {
         salaryMin: salaryMin === '' ? null : Number(salaryMin),
         salaryMax: salaryMax === '' ? null : Number(salaryMax),
         status,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
+        deadline: deadline ? (deadline.includes('T') ? deadline : `${deadline}T23:59:59.999Z`) : null,
       };
 
-      if (isSuperAdmin && selectedCompanyId) {
+      if (isSuperAdmin) {
         payload.companyId = selectedCompanyId;
+        payload.recruiterId = selectedRecruiterId || null;
+      } else if (isCompany) {
         if (selectedRecruiterId) {
           payload.recruiterId = selectedRecruiterId;
         }
       }
 
-      const res = await api.patch(`/jobs/${jobId}`, payload);
+      const res = await api.put(`/jobs/${jobId}`, payload);
 
       if (res.data.success) {
         showToast('Job posting updated successfully!', 'success');
@@ -211,7 +234,7 @@ export default function EditJobPage() {
         setFieldErrors(errorsMap);
         showToast('Validation failed. Please review the highlighted fields.', 'error');
       } else {
-        const msg = err.response?.data?.message || 'Failed to update job';
+        const msg = err.response?.data?.message || 'Failed to update job posting';
         showToast(msg, 'error');
       }
     } finally {
@@ -219,375 +242,470 @@ export default function EditJobPage() {
     }
   };
 
+  if (loadingJob) {
+    return (
+      <div className="max-w-3xl mx-auto py-6 space-y-6">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-96 rounded-3xl" />
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="max-w-md mx-auto my-12 p-8 text-center bg-[#151F32] border border-rose-500/30 rounded-3xl shadow-card">
+        <AlertCircle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
+        <h2 className="text-lg font-bold text-[#F1F5F9]">Unable to Edit Job</h2>
+        <p className="text-xs text-[#A1AEC2] mt-2">{errorMessage}</p>
+        <Link
+          href="/jobs"
+          className="inline-block mt-5 px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl"
+        >
+          Back to Job Listings
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <AuthGuard allowedRoles={['SUPER_ADMIN', 'RECRUITER']}>
-      <div className="max-w-4xl mx-auto space-y-6 py-2">
+    <AuthGuard allowedRoles={['SUPER_ADMIN', 'COMPANY', 'RECRUITER']}>
+      <div className="max-w-3xl mx-auto py-2 space-y-6">
         {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 text-xs text-slate-500">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#A1AEC2]">
           <Link
-            href="/dashboard"
-            className="hover:text-blue-600 flex items-center gap-1 transition-colors"
+            href="/"
+            className="flex items-center gap-1 hover:text-indigo-400 transition-colors"
           >
             <Home className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
+            <span>Home</span>
           </Link>
-          <span>/</span>
-          <Link href="/jobs" className="hover:text-blue-600 transition-colors">
+          <span className="text-[#64748B]">/</span>
+          <Link href="/jobs" className="hover:text-indigo-400 transition-colors">
             Job Postings
           </Link>
-          <span>/</span>
-          <Link href={`/jobs/${jobId}`} className="hover:text-blue-600 transition-colors">
+          <span className="text-[#64748B]">/</span>
+          <Link href={`/jobs/${jobId}`} className="hover:text-indigo-400 transition-colors truncate max-w-xs">
             {title || 'Job Details'}
           </Link>
-          <span>/</span>
-          <span className="text-slate-900 dark:text-white font-medium">Edit Position</span>
+          <span className="text-[#64748B]">/</span>
+          <span className="text-[#F1F5F9] font-semibold">Edit</span>
         </nav>
 
-        {/* Back Link */}
-        <Link
-          href={`/jobs/${jobId}`}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Job Details</span>
-        </Link>
-
-        {loadingJob ? (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ) : errorMessage ? (
-          <div className="p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-3xl text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
-            <h2 className="text-base font-bold text-rose-800 dark:text-rose-200">
-              {errorMessage}
-            </h2>
-            <Link
-              href="/jobs"
-              className="inline-block px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs"
-            >
-              Return to Job Postings
-            </Link>
-          </div>
-        ) : (
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6"
+        {/* Page Title & Back */}
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/jobs/${jobId}`}
+            className="p-2 text-[#A1AEC2] hover:text-[#F1F5F9] rounded-xl hover:bg-[#151F32] transition-colors"
+            title="Back to Job Details"
           >
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                Edit Job Posting
-              </h1>
-              <p className="text-xs text-slate-500 mt-1">
-                Modify role requirements, compensation, and publication lifecycle.
-              </p>
-            </div>
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-[#F1F5F9] tracking-tight">
+              Edit Job Posting
+            </h1>
+            <p className="text-xs text-[#A1AEC2] mt-0.5">
+              Update position requirements, compensation range, status, and recruiter ownership.
+            </p>
+          </div>
+        </div>
 
-            {/* Super Admin: Company & Recruiter Assignment */}
-            {isSuperAdmin && (
-              <div className="p-4 bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 rounded-2xl space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-purple-900 dark:text-purple-300">
-                  <Building className="w-4 h-4 text-purple-600" />
-                  <span>Administrative Company & Recruiter Scope</span>
+        <form
+          onSubmit={handleSubmit}
+          className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 sm:p-8 shadow-card space-y-5"
+        >
+          {/* Company & Recruiter Assignment Section */}
+          {isSuperAdmin ? (
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                <Building className="w-4 h-4 text-indigo-400" />
+                <span>Super Admin Assignment Controls</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-[#A1AEC2] mb-1">
+                    Assigned Company *
+                  </label>
+                  <select
+                    value={selectedCompanyId}
+                    onChange={(e) => handleCompanyChange(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                  >
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.recruiters?.length || 0} recruiters)
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.companyId && (
+                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.companyId}</p>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Organization / Company
-                    </label>
-                    <select
-                      value={selectedCompanyId}
-                      onChange={(e) => handleCompanyChange(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
+                <div>
+                  <label className="block font-semibold text-[#A1AEC2] mb-1">
+                    Assigned Recruiter *
+                  </label>
+                  <select
+                    value={selectedRecruiterId}
+                    onChange={(e) => setSelectedRecruiterId(e.target.value)}
+                    disabled={availableRecruiters.length === 0}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all disabled:opacity-60"
+                  >
+                    {availableRecruiters.length === 0 ? (
+                      <option value="">No recruiters linked to this company</option>
+                    ) : (
+                      availableRecruiters.map((r: any) => (
+                        <option key={r.id} value={r.id}>
+                          {r.user?.email} ({r.title || 'Recruiter'})
                         </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Assigned Recruiter
-                    </label>
-                    <select
-                      value={selectedRecruiterId}
-                      onChange={(e) => setSelectedRecruiterId(e.target.value)}
-                      disabled={availableRecruiters.length === 0}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
-                    >
-                      {availableRecruiters.length === 0 ? (
-                        <option value="">No recruiters in this company</option>
-                      ) : (
-                        availableRecruiters.map((r: any) => (
-                          <option key={r.id} value={r.id}>
-                            {r.user?.email || 'Recruiter'} {r.title ? `(${r.title})` : ''}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
+                      ))
+                    )}
+                  </select>
+                  {fieldErrors.recruiterId && (
+                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.recruiterId}</p>
+                  )}
                 </div>
               </div>
+
+              {availableRecruiters.length === 0 && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-300">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>HR/Recruiter required — this company has no eligible HR accounts.</span>
+                  </div>
+                  <Link
+                    href="/admin/users"
+                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg font-semibold transition self-start sm:self-auto"
+                  >
+                    Create HR Account
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : isCompany ? (
+            <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-teal-300">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-teal-400" />
+                  <span>Organization: <strong className="text-[#F1F5F9]">{companyDisplayName}</strong></span>
+                </div>
+                <Link href="/admin/users" className="text-xs text-teal-400 hover:underline">
+                  Manage HR Team
+                </Link>
+              </div>
+
+              {companyRecruiters.length === 0 ? (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-300">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>HR/Recruiter required — this company has no eligible HR accounts.</span>
+                  </div>
+                  <Link
+                    href="/admin/users"
+                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg font-semibold transition self-start sm:self-auto"
+                  >
+                    Create HR Account
+                  </Link>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1">
+                    Assign HR / Recruiter Lead *
+                  </label>
+                  <select
+                    value={selectedRecruiterId}
+                    onChange={(e) => setSelectedRecruiterId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 text-xs"
+                  >
+                    <option value="">Select Recruiter</option>
+                    {companyRecruiters.map((r: any) => (
+                      <option key={r.id} value={r.id}>
+                        {r.user?.email} ({r.title || 'Recruiter'})
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.recruiterId && (
+                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.recruiterId}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {/* Job Title */}
+          <div>
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Job Title *
+            </label>
+            <input
+              type="text"
+              required
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+              }}
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                fieldErrors.title ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
+            />
+            {fieldErrors.title && (
+              <p className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{fieldErrors.title}</span>
+              </p>
             )}
+          </div>
 
-            {/* Core Job Details */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Job Title *
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className={`w-full px-3 py-2 text-xs rounded-xl border ${
-                    fieldErrors.title
-                      ? 'border-rose-500'
-                      : 'border-slate-200 dark:border-slate-700'
-                  } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                />
-                {fieldErrors.title && (
-                  <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.title}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Job Description *
-                </label>
-                <textarea
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className={`w-full p-3 text-xs rounded-xl border ${
-                    fieldErrors.description
-                      ? 'border-rose-500'
-                      : 'border-slate-200 dark:border-slate-700'
-                  } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                />
-                {fieldErrors.description && (
-                  <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.description}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Requirements *
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={requirements}
-                    onChange={(e) => setRequirements(e.target.value)}
-                    className={`w-full p-3 text-xs rounded-xl border ${
-                      fieldErrors.requirements
-                        ? 'border-rose-500'
-                        : 'border-slate-200 dark:border-slate-700'
-                    } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  />
-                  {fieldErrors.requirements && (
-                    <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.requirements}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Responsibilities *
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={responsibilities}
-                    onChange={(e) => setResponsibilities(e.target.value)}
-                    className={`w-full p-3 text-xs rounded-xl border ${
-                      fieldErrors.responsibilities
-                        ? 'border-rose-500'
-                        : 'border-slate-200 dark:border-slate-700'
-                    } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  />
-                  {fieldErrors.responsibilities && (
-                    <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.responsibilities}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Required Skills (comma separated) *
-                  </label>
-                  <input
-                    type="text"
-                    value={skills}
-                    onChange={(e) => setSkills(e.target.value)}
-                    className={`w-full px-3 py-2 text-xs rounded-xl border ${
-                      fieldErrors.skills
-                        ? 'border-rose-500'
-                        : 'border-slate-200 dark:border-slate-700'
-                    } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  />
-                  {fieldErrors.skills && (
-                    <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.skills}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Location *
-                  </label>
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className={`w-full px-3 py-2 text-xs rounded-xl border ${
-                      fieldErrors.location
-                        ? 'border-rose-500'
-                        : 'border-slate-200 dark:border-slate-700'
-                    } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  />
-                  {fieldErrors.location && (
-                    <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.location}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Employment Type
-                  </label>
-                  <select
-                    value={employmentType}
-                    onChange={(e) => setEmploymentType(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="FULL_TIME">Full Time</option>
-                    <option value="PART_TIME">Part Time</option>
-                    <option value="CONTRACT">Contract</option>
-                    <option value="INTERNSHIP">Internship</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Experience Level
-                  </label>
-                  <select
-                    value={experienceLevel}
-                    onChange={(e) => setExperienceLevel(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="ENTRY_LEVEL">Entry Level</option>
-                    <option value="MID_LEVEL">Mid Level</option>
-                    <option value="SENIOR">Senior</option>
-                    <option value="LEAD">Lead</option>
-                    <option value="EXECUTIVE">Executive</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Salary Min ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={salaryMin}
-                    onChange={(e) =>
-                      setSalaryMin(e.target.value === '' ? '' : Number(e.target.value))
-                    }
-                    className={`w-full px-3 py-2 text-xs rounded-xl border ${
-                      fieldErrors.salaryMin
-                        ? 'border-rose-500'
-                        : 'border-slate-200 dark:border-slate-700'
-                    } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  />
-                  {fieldErrors.salaryMin && (
-                    <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.salaryMin}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Salary Max ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={salaryMax}
-                    onChange={(e) =>
-                      setSalaryMax(e.target.value === '' ? '' : Number(e.target.value))
-                    }
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Publication Status
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
-                  >
-                    <option value="PUBLISHED">Published (Accepting Applications)</option>
-                    <option value="DRAFT">Draft</option>
-                    <option value="ARCHIVED">Archived (Closed)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Application Deadline (Optional)
-                </label>
-                <input
-                  type="date"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className={`w-full sm:w-64 px-3 py-2 text-xs rounded-xl border ${
-                    fieldErrors.deadline
-                      ? 'border-rose-500'
-                      : 'border-slate-200 dark:border-slate-700'
-                  } bg-slate-50/50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                />
-                {fieldErrors.deadline && (
-                  <p className="text-[11px] text-rose-500 mt-1">{fieldErrors.deadline}</p>
-                )}
-                <span className="block text-[11px] text-slate-400 mt-1">
-                  Leave blank for rolling applications without a hard cutoff.
-                </span>
-              </div>
+          {/* Location, Employment Type, Experience Level */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                Location *
+              </label>
+              <input
+                type="text"
+                required
+                value={location}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  if (fieldErrors.location) setFieldErrors({ ...fieldErrors, location: '' });
+                }}
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                  fieldErrors.location ? 'border-rose-500' : 'border-[#2B3950]'
+                }`}
+              />
+              {fieldErrors.location && (
+                <p className="text-xs text-rose-400 mt-1">{fieldErrors.location}</p>
+              )}
             </div>
 
-            {/* Form Actions */}
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <Link
-                href={`/jobs/${jobId}`}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+            <div>
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                Employment Type *
+              </label>
+              <select
+                value={employmentType}
+                onChange={(e) => setEmploymentType(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
               >
-                Cancel
-              </Link>
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                loading={saving}
-                disabled={saving}
-                className="flex items-center gap-1.5"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save Changes</span>
-              </Button>
+                <option value="FULL_TIME">Full Time</option>
+                <option value="PART_TIME">Part Time</option>
+                <option value="CONTRACT">Contract</option>
+                <option value="INTERNSHIP">Internship</option>
+              </select>
             </div>
-          </form>
-        )}
+
+            <div>
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                Experience Level *
+              </label>
+              <select
+                value={experienceLevel}
+                onChange={(e) => setExperienceLevel(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+              >
+                <option value="ENTRY_LEVEL">Entry Level</option>
+                <option value="MID_LEVEL">Mid Level</option>
+                <option value="SENIOR">Senior</option>
+                <option value="LEAD">Lead / Architect</option>
+                <option value="EXECUTIVE">Executive</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Salary Min, Salary Max, Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                Min Salary (USD)
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={salaryMin}
+                onChange={(e) => {
+                  setSalaryMin(e.target.value === '' ? '' : Number(e.target.value));
+                  if (fieldErrors.salaryMin) setFieldErrors({ ...fieldErrors, salaryMin: '' });
+                }}
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                  fieldErrors.salaryMin ? 'border-rose-500' : 'border-[#2B3950]'
+                }`}
+              />
+              {fieldErrors.salaryMin && (
+                <p className="text-xs text-rose-400 mt-1">{fieldErrors.salaryMin}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                Max Salary (USD)
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={salaryMax}
+                onChange={(e) => {
+                  setSalaryMax(e.target.value === '' ? '' : Number(e.target.value));
+                  if (fieldErrors.salaryMax) setFieldErrors({ ...fieldErrors, salaryMax: '' });
+                }}
+                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                  fieldErrors.salaryMax ? 'border-rose-500' : 'border-[#2B3950]'
+                }`}
+              />
+              {fieldErrors.salaryMax && (
+                <p className="text-xs text-rose-400 mt-1">{fieldErrors.salaryMax}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                Posting Status *
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+              >
+                <option value="PUBLISHED">Published (Accepting Candidates)</option>
+                <option value="DRAFT">Draft</option>
+                <option value="ARCHIVED">Closed / Archived</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Application Deadline */}
+          <div>
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Application Deadline (Optional)
+            </label>
+            <input
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
+              value={deadline}
+              onChange={(e) => {
+                setDeadline(e.target.value);
+                if (fieldErrors.deadline) setFieldErrors({ ...fieldErrors, deadline: '' });
+              }}
+              className={`w-full sm:w-1/2 px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                fieldErrors.deadline ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
+            />
+            {fieldErrors.deadline && (
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.deadline}</p>
+            )}
+          </div>
+
+          {/* Required Skills */}
+          <div>
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Key Skills & Tech Stack * (comma-separated)
+            </label>
+            <input
+              type="text"
+              required
+              value={skills}
+              onChange={(e) => {
+                setSkills(e.target.value);
+                if (fieldErrors.skills) setFieldErrors({ ...fieldErrors, skills: '' });
+              }}
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
+                fieldErrors.skills ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
+            />
+            {fieldErrors.skills && (
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.skills}</p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Job Overview & Purpose *
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: '' });
+              }}
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
+                fieldErrors.description ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
+            />
+            {fieldErrors.description && (
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.description}</p>
+            )}
+          </div>
+
+          {/* Responsibilities */}
+          <div>
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Core Responsibilities *
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={responsibilities}
+              onChange={(e) => {
+                setResponsibilities(e.target.value);
+                if (fieldErrors.responsibilities) setFieldErrors({ ...fieldErrors, responsibilities: '' });
+              }}
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
+                fieldErrors.responsibilities ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
+            />
+            {fieldErrors.responsibilities && (
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.responsibilities}</p>
+            )}
+          </div>
+
+          {/* Requirements */}
+          <div>
+            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              Candidate Requirements & Qualifications *
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={requirements}
+              onChange={(e) => {
+                setRequirements(e.target.value);
+                if (fieldErrors.requirements) setFieldErrors({ ...fieldErrors, requirements: '' });
+              }}
+              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
+                fieldErrors.requirements ? 'border-rose-500' : 'border-[#2B3950]'
+              }`}
+            />
+            {fieldErrors.requirements && (
+              <p className="text-xs text-rose-400 mt-1">{fieldErrors.requirements}</p>
+            )}
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2B3950]">
+            <Link
+              href={`/jobs/${jobId}`}
+              className="px-4 py-2 text-xs font-semibold text-[#A1AEC2] hover:text-[#F1F5F9] rounded-xl hover:bg-[#1C2940] transition-colors"
+            >
+              Cancel
+            </Link>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              loading={saving}
+              disabled={saving}
+              className="flex items-center gap-1.5"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save Changes</span>
+            </Button>
+          </div>
+        </form>
       </div>
     </AuthGuard>
   );

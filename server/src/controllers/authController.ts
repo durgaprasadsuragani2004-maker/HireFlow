@@ -59,13 +59,16 @@ export class AuthController {
 
   async adminGetUsers(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.adminGetUsers({
-        page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
-        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
-        role: req.query.role as string,
-        status: req.query.status as string,
-        search: req.query.search as string,
-      });
+      const result = await authService.adminGetUsers(
+        {
+          page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
+          limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
+          role: req.query.role as string,
+          status: req.query.status as string,
+          search: req.query.search as string,
+        },
+        req.user
+      );
       sendSuccess(res, result);
     } catch (err) {
       next(err);
