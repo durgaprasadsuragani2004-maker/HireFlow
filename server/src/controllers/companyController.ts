@@ -4,10 +4,15 @@ import { sendSuccess } from '../utils/response';
 import { RequestWithUser } from '../types';
 import { ROLES } from '../config/constants';
 
+function resolveCompanyId(req: RequestWithUser): string | undefined {
+  if (req.params.id) return String(req.params.id);
+  return req.user?.companyId || req.user?.recruiterProfile?.companyId || req.user?.company?.id || undefined;
+}
+
 export class CompanyController {
   async getCompany(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
-      const companyId = req.params.id ? String(req.params.id) : req.user?.recruiterProfile?.companyId;
+      const companyId = resolveCompanyId(req);
       if (!companyId) {
         if (req.user?.role === ROLES.SUPER_ADMIN) {
           const companies = await companyService.getAllCompanies();
@@ -44,7 +49,7 @@ export class CompanyController {
 
   async updateCompany(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
-      const companyId = req.params.id ? String(req.params.id) : req.user?.recruiterProfile?.companyId;
+      const companyId = resolveCompanyId(req);
       if (!companyId) {
         sendSuccess(res, null, 'Company ID is required to update details', 400);
         return;
@@ -68,7 +73,7 @@ export class CompanyController {
 
   async getCompanyAnalytics(req: RequestWithUser, res: Response, next: NextFunction): Promise<void> {
     try {
-      const companyId = req.params.id ? String(req.params.id) : req.user?.recruiterProfile?.companyId;
+      const companyId = resolveCompanyId(req);
       if (!companyId) {
         sendSuccess(res, null, 'Company ID is required to fetch analytics', 400);
         return;

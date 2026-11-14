@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '../config/env';
@@ -126,9 +127,16 @@ export class StorageService {
    * Gets absolute local file path for streaming
    */
   getLocalFilePath(fileName: string): string | null {
-    const filePath = path.join(env.UPLOAD_DIR, fileName);
-    if (fs.existsSync(filePath)) {
-      return filePath;
+    const candidateDirs = [
+      env.UPLOAD_DIR,
+      path.join(os.tmpdir(), 'hireflow-uploads'),
+      os.tmpdir(),
+    ];
+    for (const dir of candidateDirs) {
+      const filePath = path.join(dir, fileName);
+      if (fs.existsSync(filePath)) {
+        return filePath;
+      }
     }
     return null;
   }

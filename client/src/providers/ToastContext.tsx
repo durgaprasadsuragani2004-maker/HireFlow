@@ -60,7 +60,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column-reverse',
-        gap: '0.5rem',
+        gap: '0.625rem',
         maxWidth: '24rem',
         width: '100%',
       }}
@@ -71,26 +71,26 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         <div
           key={toast.id}
           style={{ pointerEvents: 'auto' }}
-          className={`flex items-start justify-between gap-3 p-3.5 rounded-2xl shadow-dropdown border backdrop-blur-md transition-all duration-200 animate-in slide-in-from-bottom-2 fade-in ${
+          className={`glass-toast bg-white flex items-start justify-between gap-3 p-4 shadow-xl border backdrop-blur-xl transition-all duration-200 animate-in slide-in-from-bottom-2 fade-in text-[#202033] ${
             toast.type === 'success'
-              ? 'bg-[#1C2940]/95 border-emerald-500/50 text-[#F1F5F9] shadow-emerald-950/30'
+              ? 'border-[#16A878]/40 shadow-[0_8px_24px_rgba(22,168,120,0.15)]'
               : toast.type === 'error'
-              ? 'bg-[#1C2940]/95 border-rose-500/50 text-[#F1F5F9] shadow-rose-950/30'
+              ? 'border-[#E05260]/40 shadow-[0_8px_24px_rgba(224,82,96,0.15)]'
               : toast.type === 'warning'
-              ? 'bg-[#1C2940]/95 border-amber-500/50 text-[#F1F5F9] shadow-amber-950/30'
-              : 'bg-[#1C2940]/95 border-indigo-500/50 text-[#F1F5F9] shadow-indigo-950/30'
+              ? 'border-[#E9A23B]/40 shadow-[0_8px_24px_rgba(233,162,59,0.15)]'
+              : 'border-[#8B7CF6]/40 shadow-[0_8px_24px_rgba(108,92,231,0.15)]'
           }`}
         >
-          <div className="flex items-start gap-2.5 text-xs font-medium leading-relaxed">
-            {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />}
-            {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />}
-            {toast.type === 'warning' && <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />}
-            {toast.type === 'info' && <Info className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />}
+          <div className="flex items-start gap-3 text-xs font-medium leading-relaxed">
+            {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-[#16A878] shrink-0 mt-0.5" />}
+            {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-[#E05260] shrink-0 mt-0.5" />}
+            {toast.type === 'warning' && <AlertCircle className="w-4 h-4 text-[#E9A23B] shrink-0 mt-0.5" />}
+            {toast.type === 'info' && <Info className="w-4 h-4 text-[#6C5CE7] shrink-0 mt-0.5" />}
             <span className="break-words">{toast.message}</span>
           </div>
           <button
             onClick={() => removeToast(toast.id)}
-            className="p-1 -mr-1 -mt-0.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors shrink-0"
+            className="neu-icon-btn p-1 -mr-1 -mt-0.5 rounded-lg text-[#68677D] hover:text-[#202033] transition-colors shrink-0 cursor-pointer"
             aria-label="Dismiss notification"
           >
             <X className="w-3.5 h-3.5" />
@@ -108,7 +108,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
-export const useToast = () => {
+export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');

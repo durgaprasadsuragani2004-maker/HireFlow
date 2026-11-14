@@ -1,33 +1,57 @@
 import { z } from 'zod';
 import { ROLES, USER_STATUS } from '../config/constants';
 
-export const registerSchema = z.object({
-  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
-  password: z.string().min(6, 'Password must be at least 6 characters long'),
-  role: z.enum([ROLES.APPLICANT, ROLES.RECRUITER], {
-    errorMap: () => ({ message: 'Role must be either APPLICANT or RECRUITER' }),
-  }),
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional(),
-  companyName: z.string().min(2, 'Company name is required for recruiters').optional(),
-  title: z.string().optional(),
-}).refine(
-  (data) => {
-    if (data.role === ROLES.APPLICANT && !data.fullName) {
-      return false;
+export const registerSchema = z
+  .object({
+    email: z
+      .string({ required_error: 'Email address is required' })
+      .trim()
+      .toLowerCase()
+      .email('Please enter a valid email address'),
+    password: z
+      .string({ required_error: 'Password is required' })
+      .min(6, 'Password must be at least 6 characters long'),
+    role: z
+      .string()
+      .optional()
+      .transform((val) => (val ? val.toUpperCase().trim() : ROLES.APPLICANT))
+      .pipe(
+        z.enum([ROLES.APPLICANT, ROLES.RECRUITER, ROLES.COMPANY], {
+          errorMap: () => ({ message: 'Role must be APPLICANT, RECRUITER, or COMPANY' }),
+        })
+      ),
+    fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').optional(),
+    name: z.string().trim().min(2).optional(),
+    companyName: z.string().trim().min(2, 'Company name is required for recruiters').optional(),
+    company: z.string().trim().min(2).optional(),
+    title: z.string().trim().optional(),
+  })
+  .transform((data) => ({
+    ...data,
+    fullName: data.fullName || data.name,
+    companyName: data.companyName || data.company,
+  }))
+  .refine(
+    (data) => {
+      if (data.role === ROLES.APPLICANT && !data.fullName) {
+        return false;
+      }
+      if (data.role === ROLES.RECRUITER && !data.companyName) {
+        return false;
+      }
+      if (data.role === ROLES.COMPANY && !data.companyName) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Required fields missing for specified role (fullName for applicant, companyName for recruiter or company)',
+      path: ['fullName'],
     }
-    if (data.role === ROLES.RECRUITER && !data.companyName) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: 'Required fields missing for specified role (fullName for applicant, companyName for recruiter)',
-    path: ['role'],
-  }
-);
+  );
 
 export const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
+  email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 

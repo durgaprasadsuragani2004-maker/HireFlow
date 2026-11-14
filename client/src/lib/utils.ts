@@ -28,52 +28,52 @@ export function getStageColor(stage: string): { bg: string; text: string; border
   switch (stage) {
     case 'APPLIED':
       return {
-        bg: 'bg-sky-500/15',
-        text: 'text-sky-300',
-        border: 'border-sky-500/30',
-        dot: 'bg-sky-400',
+        bg: 'bg-[#EAE7FF]',
+        text: 'text-[#6C5CE7]',
+        border: 'border-[#8B7CF6]/35',
+        dot: 'bg-[#6C5CE7]',
       };
     case 'SCREENING':
       return {
-        bg: 'bg-violet-500/15',
-        text: 'text-violet-300',
-        border: 'border-violet-500/30',
-        dot: 'bg-violet-400',
+        bg: 'bg-[#EAE7FF]',
+        text: 'text-[#5B4BD8]',
+        border: 'border-[#8B7CF6]/35',
+        dot: 'bg-[#8B7CF6]',
       };
     case 'SHORTLISTED':
       return {
-        bg: 'bg-amber-500/15',
-        text: 'text-amber-300',
-        border: 'border-amber-500/30',
-        dot: 'bg-amber-400',
+        bg: 'bg-[#E9A23B]/12',
+        text: 'text-[#C47D15]',
+        border: 'border-[#E9A23B]/35',
+        dot: 'bg-[#E9A23B]',
       };
     case 'INTERVIEW':
       return {
-        bg: 'bg-indigo-500/15',
-        text: 'text-indigo-300',
-        border: 'border-indigo-500/30',
-        dot: 'bg-indigo-400',
+        bg: 'bg-[#EAE7FF]',
+        text: 'text-[#6C5CE7]',
+        border: 'border-[#8B7CF6]/35',
+        dot: 'bg-[#6C5CE7]',
       };
     case 'SELECTED':
       return {
-        bg: 'bg-emerald-500/15',
-        text: 'text-emerald-300',
-        border: 'border-emerald-500/30',
-        dot: 'bg-emerald-400',
+        bg: 'bg-[#16A878]/12',
+        text: 'text-[#16A878]',
+        border: 'border-[#16A878]/35',
+        dot: 'bg-[#16A878]',
       };
     case 'REJECTED':
       return {
-        bg: 'bg-rose-500/15',
-        text: 'text-rose-300',
-        border: 'border-rose-500/30',
-        dot: 'bg-rose-400',
+        bg: 'bg-[#E05260]/12',
+        text: 'text-[#E05260]',
+        border: 'border-[#E05260]/35',
+        dot: 'bg-[#E05260]',
       };
     default:
       return {
-        bg: 'bg-slate-800/80',
-        text: 'text-slate-300',
-        border: 'border-slate-700',
-        dot: 'bg-slate-400',
+        bg: 'bg-[#F0F1F8]',
+        text: 'text-[#68677D]',
+        border: 'border-[#E4E3EF]',
+        dot: 'bg-[#9E9EB3]',
       };
   }
 }
@@ -238,4 +238,57 @@ export function normalizeJobStatus(job?: {
     description: `Position status: ${rawStatus}`,
   };
 }
+
+/**
+ * Orders jobs according to the 5-tier requirement:
+ * (1) Active published with upcoming deadlines (earliest deadline first)
+ * (2) Active published without deadlines (newest createdAt first)
+ * (3) Drafts (newest createdAt first)
+ * (4) Expired jobs at the bottom (most recently expired first)
+ * (5) Archived / closed jobs at the very bottom
+ */
+export function sortJobsByActiveAndDeadline(jobs: any[]): any[] {
+  if (!Array.isArray(jobs)) return [];
+
+  return [...jobs].sort((a, b) => {
+    const statusA = normalizeJobStatus(a);
+    const statusB = normalizeJobStatus(b);
+
+    const getTier = (job: any, status: NormalizedJobStatus): number => {
+      if (status.isClosed || status.rawStatus === 'ARCHIVED') return 5;
+      if (status.isExpired) return 4;
+      if (status.isDraft) return 3;
+      if (status.isOpen && !job.deadline) return 2;
+      if (status.isOpen && job.deadline) return 1;
+      return 3;
+    };
+
+    const tierA = getTier(a, statusA);
+    const tierB = getTier(b, statusB);
+
+    if (tierA !== tierB) {
+      return tierA - tierB;
+    }
+
+    // Within Tier 1 (Upcoming deadlines): earliest deadline first
+    if (tierA === 1) {
+      const timeA = a.deadline ? new Date(a.deadline).getTime() : 0;
+      const timeB = b.deadline ? new Date(b.deadline).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+    }
+
+    // Within Tier 4 (Expired jobs): most recently expired first
+    if (tierA === 4) {
+      const timeA = a.deadline ? new Date(a.deadline).getTime() : 0;
+      const timeB = b.deadline ? new Date(b.deadline).getTime() : 0;
+      if (timeA !== timeB) return timeB - timeA;
+    }
+
+    // Default: newest createdAt first
+    const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return createdB - createdA;
+  });
+}
+
 

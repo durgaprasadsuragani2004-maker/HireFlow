@@ -28,11 +28,11 @@ router.get(
   applicationController.getMyApplications
 );
 
-// Recruiter / Admin routes
+// Recruiter, Company & Admin routes
 router.get(
   '/',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateQuery(queryApplicationsSchema),
   applicationController.queryApplications
 );
@@ -40,7 +40,7 @@ router.get(
 router.get(
   '/kanban/:jobId',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   applicationController.getKanban
 );
 
@@ -50,7 +50,7 @@ router.get('/:id/history', authenticate, applicationController.getStageHistory);
 router.patch(
   '/:id/stage',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(changeStageSchema),
   applicationController.changeStage
 );
@@ -58,7 +58,7 @@ router.patch(
 router.patch(
   '/:id/notes',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(updateNotesSchema),
   applicationController.updateNotes
 );

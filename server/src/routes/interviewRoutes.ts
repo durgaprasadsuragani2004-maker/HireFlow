@@ -16,7 +16,7 @@ router.get('/:id', authenticate, interviewController.getInterviewById);
 router.post(
   '/',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(scheduleInterviewSchema),
   interviewController.scheduleInterview
 );
@@ -24,7 +24,7 @@ router.post(
 router.patch(
   '/:id',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   validateBody(updateInterviewSchema),
   interviewController.updateInterview
 );
@@ -32,7 +32,7 @@ router.patch(
 router.delete(
   '/:id',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   interviewController.deleteInterview
 );
 

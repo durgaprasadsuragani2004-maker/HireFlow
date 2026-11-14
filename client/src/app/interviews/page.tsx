@@ -106,36 +106,36 @@ export default function InterviewsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center">
-                <Calendar className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center shadow-[inset_1px_1px_2px_rgba(255,255,255,0.1)]">
+                <Calendar className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-bold text-dark-text tracking-tight">
+              <h1 className="text-2xl font-bold text-[#202033] tracking-tight">
                 Scheduled Interviews
               </h1>
             </div>
-            <p className="text-xs text-dark-muted mt-1 ml-10">
+            <p className="text-xs text-[#68677D] mt-1 ml-11.5">
               Technical assessments, behavioral evaluations, and hiring committee meetings.
             </p>
           </div>
         </div>
 
         {/* Filter and Search Bar */}
-        <div className="bg-dark-card border border-dark-border rounded-2xl p-4 shadow-card space-y-3">
+        <div className="skeuo-card p-4 space-y-3 rounded-2xl">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-dark-dim" />
+              <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#9E9EB3]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by candidate name, email, job title, or interviewer..."
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text placeholder:text-dark-dim focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                className="skeuo-input w-full pl-10 pr-8 py-2.5 text-xs placeholder:text-[#9E9EB3]"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-2.5 p-0.5 text-dark-dim hover:text-dark-muted"
+                  className="absolute right-3 top-2.5 p-0.5 text-[#9E9EB3] hover:text-[#68677D]"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -149,12 +149,12 @@ export default function InterviewsPage() {
                   setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                className="px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-semibold"
+                className="skeuo-input px-3 py-2 text-xs font-semibold"
               >
-                <option value="" className="bg-dark-card">All Statuses</option>
-                <option value="SCHEDULED" className="bg-dark-card">Scheduled</option>
-                <option value="COMPLETED" className="bg-dark-card">Completed</option>
-                <option value="CANCELLED" className="bg-dark-card">Cancelled</option>
+                <option value="" className="bg-[#101726]">All Statuses</option>
+                <option value="SCHEDULED" className="bg-[#101726]">Scheduled</option>
+                <option value="COMPLETED" className="bg-[#101726]">Completed</option>
+                <option value="CANCELLED" className="bg-[#101726]">Cancelled</option>
               </select>
 
               <select
@@ -163,14 +163,14 @@ export default function InterviewsPage() {
                   setTypeFilter(e.target.value);
                   setPage(1);
                 }}
-                className="px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-semibold"
+                className="skeuo-input px-3 py-2 text-xs font-semibold"
               >
-                <option value="" className="bg-dark-card">All Types</option>
-                <option value="TECHNICAL" className="bg-dark-card">Technical</option>
-                <option value="HR" className="bg-dark-card">HR Screen</option>
-                <option value="MANAGERIAL" className="bg-dark-card">Managerial</option>
-                <option value="BEHAVIORAL" className="bg-dark-card">Behavioral</option>
-                <option value="FINAL" className="bg-dark-card">Final Round</option>
+                <option value="" className="bg-[#101726]">All Types</option>
+                <option value="TECHNICAL" className="bg-[#101726]">Technical</option>
+                <option value="HR" className="bg-[#101726]">HR Screen</option>
+                <option value="MANAGERIAL" className="bg-[#101726]">Managerial</option>
+                <option value="BEHAVIORAL" className="bg-[#101726]">Behavioral</option>
+                <option value="FINAL" className="bg-[#101726]">Final Round</option>
               </select>
 
               <select
@@ -179,17 +179,17 @@ export default function InterviewsPage() {
                   setSortBy(e.target.value);
                   setPage(1);
                 }}
-                className="px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-semibold"
+                className="skeuo-input px-3 py-2 text-xs font-semibold"
               >
-                <option value="upcoming" className="bg-dark-card">Upcoming First</option>
-                <option value="latest" className="bg-dark-card">Latest First</option>
+                <option value="upcoming" className="bg-[#101726]">Upcoming First</option>
+                <option value="latest" className="bg-[#101726]">Latest First</option>
               </select>
             </div>
           </div>
 
           {/* Optional Date Range Filter */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-dark-border text-xs text-dark-dim">
-            <span className="font-semibold text-dark-muted">Date Range:</span>
+          <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-[#E4E3EF]/70 text-xs text-[#68677D]">
+            <span className="font-semibold text-[#202033]">Date Range:</span>
             <input
               type="date"
               value={startDate}
@@ -197,10 +197,10 @@ export default function InterviewsPage() {
                 setStartDate(e.target.value);
                 setPage(1);
               }}
-              className="px-2.5 py-1 text-xs rounded-lg border border-dark-border bg-dark-input text-dark-text"
+              className="skeuo-input px-2.5 py-1 text-xs"
               title="From date"
             />
-            <span>to</span>
+            <span className="text-[#9E9EB3]">to</span>
             <input
               type="date"
               value={endDate}
@@ -208,7 +208,7 @@ export default function InterviewsPage() {
                 setEndDate(e.target.value);
                 setPage(1);
               }}
-              className="px-2.5 py-1 text-xs rounded-lg border border-dark-border bg-dark-input text-dark-text"
+              className="skeuo-input px-2.5 py-1 text-xs"
               title="To date"
             />
 
@@ -222,7 +222,7 @@ export default function InterviewsPage() {
                   setEndDate('');
                   setPage(1);
                 }}
-                className="text-xs text-brand-400 font-bold hover:underline ml-2"
+                className="text-xs text-indigo-400 font-bold hover:underline ml-2"
               >
                 Reset Filters
               </button>
@@ -251,7 +251,7 @@ export default function InterviewsPage() {
             {interviews.map((iv) => (
               <div
                 key={iv.id}
-                className="bg-dark-card border border-dark-border rounded-3xl p-5 sm:p-6 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-brand-500/40 hover:-translate-y-0.5 transition-all duration-200"
+                className="skeuo-card-interactive p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="space-y-2 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -266,39 +266,39 @@ export default function InterviewsPage() {
                     >
                       {iv.status}
                     </Badge>
-                    <span className="text-xs font-bold text-brand-400">
+                    <span className="text-xs font-bold text-indigo-400">
                       {iv.interviewType} Assessment
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-base text-dark-text truncate">
+                  <h3 className="font-bold text-base text-[#202033] truncate">
                     {iv.application?.applicant?.fullName} — {iv.application?.job?.title}
                   </h3>
 
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-dark-muted">
-                    <span className="flex items-center gap-1 font-semibold text-dark-text">
-                      <Calendar className="w-3.5 h-3.5 text-dark-dim" />
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#68677D]">
+                    <span className="flex items-center gap-1 font-semibold text-[#202033]">
+                      <Calendar className="w-3.5 h-3.5 text-[#9E9EB3]" />
                       <span>{iv.date}</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-dark-dim" />
+                      <Clock className="w-3.5 h-3.5 text-[#9E9EB3]" />
                       <span>{iv.startTime} - {iv.endTime}</span>
                     </span>
-                    <span className="flex items-center gap-1 text-dark-muted">
-                      <User className="w-3.5 h-3.5 text-dark-dim" />
+                    <span className="flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-[#9E9EB3]" />
                       <span>Interviewer: {iv.interviewerName}</span>
                     </span>
                     {iv.application?.job?.company?.name && (
-                      <span className="flex items-center gap-1 text-dark-muted">
-                        <Building2 className="w-3.5 h-3.5 text-dark-dim" />
+                      <span className="flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-[#68677D]" />
                         <span>{iv.application.job.company.name}</span>
                       </span>
                     )}
                   </div>
 
                   {iv.notes && (
-                    <p className="text-xs text-dark-muted mt-2 bg-dark-input/60 p-2.5 rounded-xl border border-dark-border leading-relaxed">
-                      <strong className="text-dark-text">Briefing Notes:</strong> {iv.notes}
+                    <p className="text-xs text-[#68677D] mt-2 bg-[#F8F8FC] p-3 rounded-xl border border-[#E4E3EF] leading-relaxed">
+                      <strong className="text-[#202033]">Briefing Notes:</strong> {iv.notes}
                     </p>
                   )}
                 </div>
@@ -310,7 +310,7 @@ export default function InterviewsPage() {
                       href={iv.meetingLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-4 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-subtle flex items-center gap-1.5 transition-colors"
+                      className="neu-btn-primary px-4 py-2 text-xs font-bold text-white rounded-xl shadow-neu-raised flex items-center gap-1.5"
                     >
                       <span>Join Meeting</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -318,20 +318,20 @@ export default function InterviewsPage() {
                   )}
 
                   {isRecruiter && iv.status === 'SCHEDULED' && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleUpdateStatus(iv.id, 'COMPLETED')}
-                        className="p-2 text-emerald-400 hover:bg-emerald-950/30 rounded-xl transition-colors"
+                        className="p-2 text-emerald-400 hover:text-emerald-300 bg-[#101726] border border-emerald-500/30 hover:border-emerald-500/50 rounded-xl shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.4)] active:translate-y-[1px] transition-all"
                         title="Mark as Completed"
                       >
-                        <CheckCircle2 className="w-5 h-5" />
+                        <CheckCircle2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleUpdateStatus(iv.id, 'CANCELLED')}
-                        className="p-2 text-rose-400 hover:bg-rose-950/30 rounded-xl transition-colors"
+                        className="p-2 text-rose-400 hover:text-rose-300 bg-[#101726] border border-rose-500/30 hover:border-rose-500/50 rounded-xl shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.4)] active:translate-y-[1px] transition-all"
                         title="Cancel Interview"
                       >
-                        <XCircle className="w-5 h-5" />
+                        <XCircle className="w-4 h-4" />
                       </button>
                     </div>
                   )}
@@ -341,7 +341,7 @@ export default function InterviewsPage() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 text-xs text-dark-dim border-t border-dark-border">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 text-xs text-[#68677D] border-t border-[#E4E3EF]/80">
                 <div>
                   Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} interviews
                 </div>
@@ -355,7 +355,7 @@ export default function InterviewsPage() {
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <span className="px-3 py-1 font-semibold text-dark-text">
+                  <span className="px-3 py-1 font-semibold text-[#202033]">
                     Page {page} of {totalPages}
                   </span>
                   <Button

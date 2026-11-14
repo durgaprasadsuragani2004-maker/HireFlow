@@ -14,6 +14,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
+    "hireflow-ats": "file:..",
     "lucide-react": "^0.460.0",
     "next": "^14.2.18",
     "react": "^18.3.1",

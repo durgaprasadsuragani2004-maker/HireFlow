@@ -164,7 +164,7 @@ export default function ProfilePage() {
         showToast('Profile updated successfully', 'success');
         await refreshUser();
       } else if (user?.role === 'RECRUITER' || user?.role === 'COMPANY') {
-        await api.patch('/companies', {
+        const payload: any = {
           website: companyWebsite.trim() || null,
           industry: companyIndustry.trim() || null,
           location: companyLocation.trim() || null,
@@ -172,8 +172,13 @@ export default function ProfilePage() {
           contactEmail: companyContactEmail.trim() || null,
           contactPhone: companyContactPhone.trim() || null,
           description: companyDesc.trim() || null,
-        });
+        };
+        if (user?.role === 'COMPANY' && companyName.trim()) {
+          payload.name = companyName.trim();
+        }
+        await api.patch('/companies', payload);
         showToast('Company profile updated successfully', 'success');
+        await refreshUser();
       }
     } catch (err: any) {
       showToast(err.response?.data?.message || 'Failed to update profile', 'error');
@@ -210,23 +215,23 @@ export default function ProfilePage() {
 
           {/* Resume Upload Section for Applicants */}
           {user.role === 'APPLICANT' && (
-            <div className="bg-dark-card border border-dark-border rounded-3xl p-6 sm:p-8 shadow-card space-y-4">
+            <div className="skeuo-card rounded-3xl p-6 sm:p-8 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.1)]">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-dark-text">
+                  <h2 className="text-sm font-bold text-[#202033]">
                     Resume Document Management
                   </h2>
-                  <p className="text-xs text-dark-muted">
+                  <p className="text-xs text-[#68677D]">
                     Upload your latest resume (PDF, DOC, DOCX up to 5MB). Stored securely via cloud storage abstraction.
                   </p>
                 </div>
               </div>
 
               {user.applicantProfile?.resumeUrl && (
-                <div className="p-4 bg-emerald-950/30 border border-emerald-800/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 bg-emerald-950/20 border border-emerald-800/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05)]">
                   <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>Current Resume is Active & Attached to Applications</span>
@@ -237,7 +242,7 @@ export default function ProfilePage() {
                       type="button"
                       onClick={handleDownloadApplicantResume}
                       disabled={downloadingResume}
-                      className="px-3.5 py-1.5 text-xs font-bold bg-dark-card border border-emerald-700/50 text-emerald-300 rounded-xl flex items-center gap-1 shadow-subtle hover:bg-emerald-950/40 disabled:opacity-60"
+                      className="neu-btn-secondary px-3.5 py-1.5 text-xs font-bold text-emerald-300 rounded-xl flex items-center gap-1 disabled:opacity-60"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>{downloadingResume ? 'Downloading...' : 'Download Resume'}</span>
@@ -246,7 +251,7 @@ export default function ProfilePage() {
                       href={getAuthenticatedResumeUrl(user.applicantProfile.resumeUrl)}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 text-xs font-semibold bg-dark-input hover:bg-dark-hover text-dark-muted border border-dark-border rounded-xl transition flex items-center gap-1"
+                      className="neu-btn-secondary px-3 py-1.5 text-xs font-semibold rounded-xl text-[#68677D] flex items-center gap-1"
                     >
                       <span>Open Tab</span>
                       <ExternalLink className="w-3 h-3" />
@@ -260,7 +265,7 @@ export default function ProfilePage() {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                  className="text-xs text-dark-muted file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-500/15 file:text-brand-300 hover:file:bg-brand-500/25 file:transition"
+                  className="text-xs text-[#68677D] file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-500/15 file:text-indigo-300 hover:file:bg-indigo-500/25 file:transition"
                 />
                 <Button
                   type="submit"
@@ -277,8 +282,8 @@ export default function ProfilePage() {
           )}
 
           {/* Profile Form (Applicant Profile OR Recruiter Company) */}
-          <div className="bg-dark-card border border-dark-border rounded-3xl p-6 sm:p-8 shadow-card">
-            <h2 className="text-sm font-bold text-dark-text mb-4 pb-2 border-b border-dark-border">
+          <div className="skeuo-card rounded-3xl p-6 sm:p-8">
+            <h2 className="text-sm font-bold text-[#202033] mb-4 pb-2 border-b border-[#E4E3EF]/80">
               {user.role === 'RECRUITER' || user.role === 'COMPANY' ? 'Company Details' : 'Professional Profile'}
             </h2>
 
@@ -287,18 +292,18 @@ export default function ProfilePage() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Full Name
                       </label>
                       <input
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Professional Headline
                       </label>
                       <input
@@ -306,14 +311,14 @@ export default function ProfilePage() {
                         value={headline}
                         onChange={(e) => setHeadline(e.target.value)}
                         placeholder="e.g. Senior Full-Stack Engineer"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Phone Number
                       </label>
                       <input
@@ -321,11 +326,11 @@ export default function ProfilePage() {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+1 (555) 000-0000"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Location
                       </label>
                       <input
@@ -333,14 +338,14 @@ export default function ProfilePage() {
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                         placeholder="San Francisco, CA or Remote"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         LinkedIn URL
                       </label>
                       <input
@@ -348,11 +353,11 @@ export default function ProfilePage() {
                         value={linkedinUrl}
                         onChange={(e) => setLinkedinUrl(e.target.value)}
                         placeholder="https://linkedin.com/in/..."
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         GitHub Profile
                       </label>
                       <input
@@ -360,13 +365,13 @@ export default function ProfilePage() {
                         value={githubUrl}
                         onChange={(e) => setGithubUrl(e.target.value)}
                         placeholder="https://github.com/..."
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                    <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                       Professional Summary
                     </label>
                     <textarea
@@ -374,7 +379,7 @@ export default function ProfilePage() {
                       value={summary}
                       onChange={(e) => setSummary(e.target.value)}
                       placeholder="Brief background summary highlighting key accomplishments..."
-                      className="w-full p-3.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all leading-relaxed placeholder:text-dark-dim"
+                      className="skeuo-input w-full p-3.5 text-xs leading-relaxed"
                     />
                   </div>
                 </>
@@ -382,18 +387,21 @@ export default function ProfilePage() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
-                        Company Name (Managed by Organization Admin)
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
+                        Company Name {user.role === 'COMPANY' ? '*' : '(Managed by Organization Admin)'}
                       </label>
                       <input
                         type="text"
-                        disabled
+                        disabled={user.role !== 'COMPANY'}
                         value={companyName}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input/40 text-dark-dim cursor-not-allowed"
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className={`skeuo-input w-full px-3.5 py-2.5 text-xs ${
+                          user.role !== 'COMPANY' ? 'opacity-60 cursor-not-allowed' : ''
+                        }`}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Industry
                       </label>
                       <input
@@ -401,14 +409,14 @@ export default function ProfilePage() {
                         value={companyIndustry}
                         onChange={(e) => setCompanyIndustry(e.target.value)}
                         placeholder="e.g. Enterprise Cloud & AI"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Website
                       </label>
                       <input
@@ -416,11 +424,11 @@ export default function ProfilePage() {
                         value={companyWebsite}
                         onChange={(e) => setCompanyWebsite(e.target.value)}
                         placeholder="https://company.com"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Headquarters Location
                       </label>
                       <input
@@ -428,31 +436,31 @@ export default function ProfilePage() {
                         value={companyLocation}
                         onChange={(e) => setCompanyLocation(e.target.value)}
                         placeholder="San Francisco, CA"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Company Size
                       </label>
                       <select
                         value={companySize}
                         onChange={(e) => setCompanySize(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs font-semibold"
                       >
-                        <option value="1-10" className="bg-dark-card">1-10 employees</option>
-                        <option value="11-50" className="bg-dark-card">11-50 employees</option>
-                        <option value="51-200" className="bg-dark-card">51-200 employees</option>
-                        <option value="201-500" className="bg-dark-card">201-500 employees</option>
-                        <option value="500+" className="bg-dark-card">500+ employees</option>
+                        <option value="1-10" className="bg-[#101726]">1-10 employees</option>
+                        <option value="11-50" className="bg-[#101726]">11-50 employees</option>
+                        <option value="51-200" className="bg-[#101726]">51-200 employees</option>
+                        <option value="201-500" className="bg-[#101726]">201-500 employees</option>
+                        <option value="500+" className="bg-[#101726]">500+ employees</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Contact Email
                       </label>
                       <input
@@ -460,12 +468,12 @@ export default function ProfilePage() {
                         value={companyContactEmail}
                         onChange={(e) => setCompanyContactEmail(e.target.value)}
                         placeholder="recruiting@company.com"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Contact Phone
                       </label>
                       <input
@@ -473,13 +481,13 @@ export default function ProfilePage() {
                         value={companyContactPhone}
                         onChange={(e) => setCompanyContactPhone(e.target.value)}
                         placeholder="+1 (555) 000-0000"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                    <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                       Company Overview & Culture
                     </label>
                     <textarea
@@ -487,13 +495,13 @@ export default function ProfilePage() {
                       value={companyDesc}
                       onChange={(e) => setCompanyDesc(e.target.value)}
                       placeholder="About our mission, culture, benefits, and hiring standards..."
-                      className="w-full p-3.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all leading-relaxed placeholder:text-dark-dim"
+                      className="skeuo-input w-full p-3.5 text-xs leading-relaxed"
                     />
                   </div>
                 </>
               ) : null}
 
-              <div className="flex justify-end pt-3 border-t border-dark-border">
+              <div className="flex justify-end pt-3 border-t border-[#E4E3EF]/80">
                 <Button
                   type="submit"
                   variant="primary"

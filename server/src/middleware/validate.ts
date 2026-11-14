@@ -13,7 +13,8 @@ export const validateBody = (schema: ZodTypeAny) => {
           field: e.path.join('.'),
           message: e.message,
         }));
-        sendError(res, 'Validation failed', 400, errorMessages);
+        const summaryMessage = error.errors.map((e) => e.message).join('; ');
+        sendError(res, summaryMessage || 'Validation failed', 400, errorMessages);
         return;
       }
       sendError(res, 'Invalid request payload', 400);
@@ -32,7 +33,8 @@ export const validateQuery = (schema: ZodTypeAny) => {
           field: e.path.join('.'),
           message: e.message,
         }));
-        sendError(res, 'Query parameter validation failed', 400, errorMessages);
+        const summaryMessage = error.errors.map((e) => e.message).join('; ');
+        sendError(res, summaryMessage || 'Query parameter validation failed', 400, errorMessages);
         return;
       }
       sendError(res, 'Invalid query parameters', 400);
@@ -51,7 +53,8 @@ export const validateParams = (schema: ZodTypeAny) => {
           field: e.path.join('.'),
           message: e.message,
         }));
-        sendError(res, 'Path parameter validation failed', 400, errorMessages);
+        const summaryMessage = error.errors.map((e) => e.message).join('; ');
+        sendError(res, summaryMessage || 'Path parameter validation failed', 400, errorMessages);
         return;
       }
       sendError(res, 'Invalid path parameters', 400);

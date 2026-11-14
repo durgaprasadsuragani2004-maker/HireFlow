@@ -169,7 +169,7 @@ export default function EditJobPage() {
     if (deadline) {
       const todayStr = new Date().toISOString().split('T')[0];
       if (deadline < todayStr) {
-        localErrors.deadline = 'Application deadline cannot be in the past.';
+        localErrors.deadline = 'Application deadline cannot be in the past. Please select today or a future date.';
       }
     }
 
@@ -253,13 +253,13 @@ export default function EditJobPage() {
 
   if (errorMessage) {
     return (
-      <div className="max-w-md mx-auto my-12 p-8 text-center bg-[#151F32] border border-rose-500/30 rounded-3xl shadow-card">
-        <AlertCircle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
-        <h2 className="text-lg font-bold text-[#F1F5F9]">Unable to Edit Job</h2>
-        <p className="text-xs text-[#A1AEC2] mt-2">{errorMessage}</p>
+      <div className="max-w-md mx-auto my-12 p-8 text-center bg-white border border-rose-500/30 rounded-3xl shadow-card">
+        <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-3" />
+        <h2 className="text-lg font-bold text-[#202033]">Unable to Edit Job</h2>
+        <p className="text-xs text-[#68677D] mt-2">{errorMessage}</p>
         <Link
           href="/jobs"
-          className="inline-block mt-5 px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl"
+          className="neu-btn-primary inline-block mt-5 px-4 py-2 text-xs font-bold text-white rounded-xl"
         >
           Back to Job Listings
         </Link>
@@ -271,40 +271,40 @@ export default function EditJobPage() {
     <AuthGuard allowedRoles={['SUPER_ADMIN', 'COMPANY', 'RECRUITER']}>
       <div className="max-w-3xl mx-auto py-2 space-y-6">
         {/* Breadcrumb Navigation */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#A1AEC2]">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#68677D]">
           <Link
             href="/"
-            className="flex items-center gap-1 hover:text-indigo-400 transition-colors"
+            className="flex items-center gap-1 hover:text-[#6C5CE7] transition-colors"
           >
             <Home className="w-3.5 h-3.5" />
             <span>Home</span>
           </Link>
-          <span className="text-[#64748B]">/</span>
-          <Link href="/jobs" className="hover:text-indigo-400 transition-colors">
+          <span className="text-[#E4E3EF]">/</span>
+          <Link href="/jobs" className="hover:text-[#6C5CE7] transition-colors">
             Job Postings
           </Link>
-          <span className="text-[#64748B]">/</span>
-          <Link href={`/jobs/${jobId}`} className="hover:text-indigo-400 transition-colors truncate max-w-xs">
+          <span className="text-[#E4E3EF]">/</span>
+          <Link href={`/jobs/${jobId}`} className="hover:text-[#6C5CE7] transition-colors truncate max-w-xs">
             {title || 'Job Details'}
           </Link>
-          <span className="text-[#64748B]">/</span>
-          <span className="text-[#F1F5F9] font-semibold">Edit</span>
+          <span className="text-[#E4E3EF]">/</span>
+          <span className="text-[#202033] font-semibold">Edit</span>
         </nav>
 
         {/* Page Title & Back */}
         <div className="flex items-center gap-3">
           <Link
             href={`/jobs/${jobId}`}
-            className="p-2 text-[#A1AEC2] hover:text-[#F1F5F9] rounded-xl hover:bg-[#151F32] transition-colors"
+            className="neu-icon-btn p-2 rounded-xl"
             title="Back to Job Details"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-[#202033]" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-[#F1F5F9] tracking-tight">
+            <h1 className="text-2xl font-bold text-[#202033] tracking-tight">
               Edit Job Posting
             </h1>
-            <p className="text-xs text-[#A1AEC2] mt-0.5">
+            <p className="text-xs text-[#68677D] mt-0.5">
               Update position requirements, compensation range, status, and recruiter ownership.
             </p>
           </div>
@@ -312,71 +312,71 @@ export default function EditJobPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 sm:p-8 shadow-card space-y-5"
+          className="skeuo-card p-6 sm:p-8 border border-[#E4E3EF] space-y-5"
         >
           {/* Company & Recruiter Assignment Section */}
           {isSuperAdmin ? (
-            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
-                <Building className="w-4 h-4 text-indigo-400" />
+            <div className="p-4 bg-[#EAE7FF] border border-[#8B7CF6]/30 rounded-2xl space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#6C5CE7]">
+                <Building className="w-4 h-4 text-[#6C5CE7]" />
                 <span>Super Admin Assignment Controls</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-[#A1AEC2] mb-1">
+                  <label className="block font-semibold text-[#68677D] mb-1">
                     Assigned Company *
                   </label>
                   <select
                     value={selectedCompanyId}
                     onChange={(e) => handleCompanyChange(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   >
                     {companies.map((c) => (
-                      <option key={c.id} value={c.id}>
+                      <option key={c.id} value={c.id} className="bg-white text-[#202033]">
                         {c.name} ({c.recruiters?.length || 0} recruiters)
                       </option>
                     ))}
                   </select>
                   {fieldErrors.companyId && (
-                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.companyId}</p>
+                    <p className="text-xs text-rose-500 mt-1">{fieldErrors.companyId}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-[#A1AEC2] mb-1">
+                  <label className="block font-semibold text-[#68677D] mb-1">
                     Assigned Recruiter *
                   </label>
                   <select
                     value={selectedRecruiterId}
                     onChange={(e) => setSelectedRecruiterId(e.target.value)}
                     disabled={availableRecruiters.length === 0}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all disabled:opacity-60"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs disabled:opacity-60"
                   >
                     {availableRecruiters.length === 0 ? (
-                      <option value="">No recruiters linked to this company</option>
+                      <option value="" className="bg-white text-[#202033]">No recruiters linked to this company</option>
                     ) : (
                       availableRecruiters.map((r: any) => (
-                        <option key={r.id} value={r.id}>
+                        <option key={r.id} value={r.id} className="bg-white text-[#202033]">
                           {r.user?.email} ({r.title || 'Recruiter'})
                         </option>
                       ))
                     )}
                   </select>
                   {fieldErrors.recruiterId && (
-                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.recruiterId}</p>
+                    <p className="text-xs text-rose-500 mt-1">{fieldErrors.recruiterId}</p>
                   )}
                 </div>
               </div>
 
               {availableRecruiters.length === 0 && (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-300">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-700">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                     <span>HR/Recruiter required — this company has no eligible HR accounts.</span>
                   </div>
                   <Link
                     href="/admin/users"
-                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg font-semibold transition self-start sm:self-auto"
+                    className="neu-btn-secondary px-3 py-1 text-amber-800 rounded-lg font-semibold self-start sm:self-auto"
                   >
                     Create HR Account
                   </Link>
@@ -384,49 +384,49 @@ export default function EditJobPage() {
               )}
             </div>
           ) : isCompany ? (
-            <div className="p-4 bg-teal-500/10 border border-teal-500/20 rounded-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs font-bold text-teal-300">
+            <div className="p-4 bg-[#EAE7FF] border border-[#8B7CF6]/30 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-[#6C5CE7]">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-teal-400" />
-                  <span>Organization: <strong className="text-[#F1F5F9]">{companyDisplayName}</strong></span>
+                  <Building2 className="w-4 h-4 text-[#6C5CE7]" />
+                  <span>Organization: <strong className="text-[#202033]">{companyDisplayName}</strong></span>
                 </div>
-                <Link href="/admin/users" className="text-xs text-teal-400 hover:underline">
+                <Link href="/admin/users" className="text-xs text-[#6C5CE7] hover:underline">
                   Manage HR Team
                 </Link>
               </div>
 
               {companyRecruiters.length === 0 ? (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-300">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-700">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                     <span>HR/Recruiter required — this company has no eligible HR accounts.</span>
                   </div>
                   <Link
                     href="/admin/users"
-                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg font-semibold transition self-start sm:self-auto"
+                    className="neu-btn-secondary px-3 py-1 text-amber-800 rounded-lg font-semibold self-start sm:self-auto"
                   >
                     Create HR Account
                   </Link>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1">
                     Assign HR / Recruiter Lead *
                   </label>
                   <select
                     value={selectedRecruiterId}
                     onChange={(e) => setSelectedRecruiterId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 text-xs"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   >
-                    <option value="">Select Recruiter</option>
+                    <option value="" className="bg-white text-[#202033]">Select Recruiter</option>
                     {companyRecruiters.map((r: any) => (
-                      <option key={r.id} value={r.id}>
+                      <option key={r.id} value={r.id} className="bg-white text-[#202033]">
                         {r.user?.email} ({r.title || 'Recruiter'})
                       </option>
                     ))}
                   </select>
                   {fieldErrors.recruiterId && (
-                    <p className="text-xs text-rose-400 mt-1">{fieldErrors.recruiterId}</p>
+                    <p className="text-xs text-rose-500 mt-1">{fieldErrors.recruiterId}</p>
                   )}
                 </div>
               )}
@@ -435,7 +435,7 @@ export default function EditJobPage() {
 
           {/* Job Title */}
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
               Job Title *
             </label>
             <input
@@ -446,12 +446,12 @@ export default function EditJobPage() {
                 setTitle(e.target.value);
                 if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
               }}
-              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
-                fieldErrors.title ? 'border-rose-500' : 'border-[#2B3950]'
+              className={`skeuo-input w-full px-3.5 py-2.5 text-xs ${
+                fieldErrors.title ? 'border-rose-500' : ''
               }`}
             />
             {fieldErrors.title && (
-              <p className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+              <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{fieldErrors.title}</span>
               </p>
@@ -461,7 +461,7 @@ export default function EditJobPage() {
           {/* Location, Employment Type, Experience Level */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                 Location *
               </label>
               <input
@@ -472,45 +472,45 @@ export default function EditJobPage() {
                   setLocation(e.target.value);
                   if (fieldErrors.location) setFieldErrors({ ...fieldErrors, location: '' });
                 }}
-                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
-                  fieldErrors.location ? 'border-rose-500' : 'border-[#2B3950]'
+                className={`skeuo-input w-full px-3.5 py-2.5 text-xs ${
+                  fieldErrors.location ? 'border-rose-500' : ''
                 }`}
               />
               {fieldErrors.location && (
-                <p className="text-xs text-rose-400 mt-1">{fieldErrors.location}</p>
+                <p className="text-xs text-rose-500 mt-1">{fieldErrors.location}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                 Employment Type *
               </label>
               <select
                 value={employmentType}
                 onChange={(e) => setEmploymentType(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                className="skeuo-input w-full px-3.5 py-2.5 text-xs cursor-pointer"
               >
-                <option value="FULL_TIME">Full Time</option>
-                <option value="PART_TIME">Part Time</option>
-                <option value="CONTRACT">Contract</option>
-                <option value="INTERNSHIP">Internship</option>
+                <option value="FULL_TIME" className="bg-white text-[#202033]">Full Time</option>
+                <option value="PART_TIME" className="bg-white text-[#202033]">Part Time</option>
+                <option value="CONTRACT" className="bg-white text-[#202033]">Contract</option>
+                <option value="INTERNSHIP" className="bg-white text-[#202033]">Internship</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                 Experience Level *
               </label>
               <select
                 value={experienceLevel}
                 onChange={(e) => setExperienceLevel(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                className="skeuo-input w-full px-3.5 py-2.5 text-xs cursor-pointer"
               >
-                <option value="ENTRY_LEVEL">Entry Level</option>
-                <option value="MID_LEVEL">Mid Level</option>
-                <option value="SENIOR">Senior</option>
-                <option value="LEAD">Lead / Architect</option>
-                <option value="EXECUTIVE">Executive</option>
+                <option value="ENTRY_LEVEL" className="bg-white text-[#202033]">Entry Level</option>
+                <option value="MID_LEVEL" className="bg-white text-[#202033]">Mid Level</option>
+                <option value="SENIOR" className="bg-white text-[#202033]">Senior</option>
+                <option value="LEAD" className="bg-white text-[#202033]">Lead / Architect</option>
+                <option value="EXECUTIVE" className="bg-white text-[#202033]">Executive</option>
               </select>
             </div>
           </div>
@@ -518,7 +518,7 @@ export default function EditJobPage() {
           {/* Salary Min, Salary Max, Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                 Min Salary (USD)
               </label>
               <input
@@ -529,17 +529,17 @@ export default function EditJobPage() {
                   setSalaryMin(e.target.value === '' ? '' : Number(e.target.value));
                   if (fieldErrors.salaryMin) setFieldErrors({ ...fieldErrors, salaryMin: '' });
                 }}
-                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
-                  fieldErrors.salaryMin ? 'border-rose-500' : 'border-[#2B3950]'
+                className={`skeuo-input w-full px-3.5 py-2.5 text-xs ${
+                  fieldErrors.salaryMin ? 'border-rose-500' : ''
                 }`}
               />
               {fieldErrors.salaryMin && (
-                <p className="text-xs text-rose-400 mt-1">{fieldErrors.salaryMin}</p>
+                <p className="text-xs text-rose-500 mt-1">{fieldErrors.salaryMin}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                 Max Salary (USD)
               </label>
               <input
@@ -550,34 +550,34 @@ export default function EditJobPage() {
                   setSalaryMax(e.target.value === '' ? '' : Number(e.target.value));
                   if (fieldErrors.salaryMax) setFieldErrors({ ...fieldErrors, salaryMax: '' });
                 }}
-                className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
-                  fieldErrors.salaryMax ? 'border-rose-500' : 'border-[#2B3950]'
+                className={`skeuo-input w-full px-3.5 py-2.5 text-xs ${
+                  fieldErrors.salaryMax ? 'border-rose-500' : ''
                 }`}
               />
               {fieldErrors.salaryMax && (
-                <p className="text-xs text-rose-400 mt-1">{fieldErrors.salaryMax}</p>
+                <p className="text-xs text-rose-500 mt-1">{fieldErrors.salaryMax}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                 Posting Status *
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                className="skeuo-input w-full px-3.5 py-2.5 text-xs cursor-pointer"
               >
-                <option value="PUBLISHED">Published (Accepting Candidates)</option>
-                <option value="DRAFT">Draft</option>
-                <option value="ARCHIVED">Closed / Archived</option>
+                <option value="PUBLISHED" className="bg-white text-[#202033]">Published (Accepting Candidates)</option>
+                <option value="DRAFT" className="bg-white text-[#202033]">Draft</option>
+                <option value="ARCHIVED" className="bg-white text-[#202033]">Closed / Archived</option>
               </select>
             </div>
           </div>
 
           {/* Application Deadline */}
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
               Application Deadline (Optional)
             </label>
             <input
@@ -588,18 +588,18 @@ export default function EditJobPage() {
                 setDeadline(e.target.value);
                 if (fieldErrors.deadline) setFieldErrors({ ...fieldErrors, deadline: '' });
               }}
-              className={`w-full sm:w-1/2 px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
-                fieldErrors.deadline ? 'border-rose-500' : 'border-[#2B3950]'
+              className={`skeuo-input w-full sm:w-1/2 px-3.5 py-2.5 text-xs ${
+                fieldErrors.deadline ? 'border-rose-500' : ''
               }`}
             />
             {fieldErrors.deadline && (
-              <p className="text-xs text-rose-400 mt-1">{fieldErrors.deadline}</p>
+              <p className="text-xs text-rose-500 mt-1">{fieldErrors.deadline}</p>
             )}
           </div>
 
           {/* Required Skills */}
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
               Key Skills & Tech Stack * (comma-separated)
             </label>
             <input
@@ -610,18 +610,18 @@ export default function EditJobPage() {
                 setSkills(e.target.value);
                 if (fieldErrors.skills) setFieldErrors({ ...fieldErrors, skills: '' });
               }}
-              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all ${
-                fieldErrors.skills ? 'border-rose-500' : 'border-[#2B3950]'
+              className={`skeuo-input w-full px-3.5 py-2.5 text-xs ${
+                fieldErrors.skills ? 'border-rose-500' : ''
               }`}
             />
             {fieldErrors.skills && (
-              <p className="text-xs text-rose-400 mt-1">{fieldErrors.skills}</p>
+              <p className="text-xs text-rose-500 mt-1">{fieldErrors.skills}</p>
             )}
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
               Job Overview & Purpose *
             </label>
             <textarea
@@ -632,18 +632,18 @@ export default function EditJobPage() {
                 setDescription(e.target.value);
                 if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: '' });
               }}
-              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
-                fieldErrors.description ? 'border-rose-500' : 'border-[#2B3950]'
+              className={`skeuo-input w-full px-3.5 py-2.5 text-xs leading-relaxed ${
+                fieldErrors.description ? 'border-rose-500' : ''
               }`}
             />
             {fieldErrors.description && (
-              <p className="text-xs text-rose-400 mt-1">{fieldErrors.description}</p>
+              <p className="text-xs text-rose-500 mt-1">{fieldErrors.description}</p>
             )}
           </div>
 
           {/* Responsibilities */}
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
               Core Responsibilities *
             </label>
             <textarea
@@ -654,18 +654,18 @@ export default function EditJobPage() {
                 setResponsibilities(e.target.value);
                 if (fieldErrors.responsibilities) setFieldErrors({ ...fieldErrors, responsibilities: '' });
               }}
-              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
-                fieldErrors.responsibilities ? 'border-rose-500' : 'border-[#2B3950]'
+              className={`skeuo-input w-full px-3.5 py-2.5 text-xs leading-relaxed ${
+                fieldErrors.responsibilities ? 'border-rose-500' : ''
               }`}
             />
             {fieldErrors.responsibilities && (
-              <p className="text-xs text-rose-400 mt-1">{fieldErrors.responsibilities}</p>
+              <p className="text-xs text-rose-500 mt-1">{fieldErrors.responsibilities}</p>
             )}
           </div>
 
           {/* Requirements */}
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
               Candidate Requirements & Qualifications *
             </label>
             <textarea
@@ -676,20 +676,20 @@ export default function EditJobPage() {
                 setRequirements(e.target.value);
                 if (fieldErrors.requirements) setFieldErrors({ ...fieldErrors, requirements: '' });
               }}
-              className={`w-full px-3.5 py-2.5 text-xs rounded-xl border bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed ${
-                fieldErrors.requirements ? 'border-rose-500' : 'border-[#2B3950]'
+              className={`skeuo-input w-full px-3.5 py-2.5 text-xs leading-relaxed ${
+                fieldErrors.requirements ? 'border-rose-500' : ''
               }`}
             />
             {fieldErrors.requirements && (
-              <p className="text-xs text-rose-400 mt-1">{fieldErrors.requirements}</p>
+              <p className="text-xs text-rose-500 mt-1">{fieldErrors.requirements}</p>
             )}
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2B3950]">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E4E3EF]">
             <Link
               href={`/jobs/${jobId}`}
-              className="px-4 py-2 text-xs font-semibold text-[#A1AEC2] hover:text-[#F1F5F9] rounded-xl hover:bg-[#1C2940] transition-colors"
+              className="neu-btn-secondary px-4 py-2 text-xs font-semibold rounded-xl"
             >
               Cancel
             </Link>

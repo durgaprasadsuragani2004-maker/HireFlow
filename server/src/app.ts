@@ -123,6 +123,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Swagger Documentation
 setupSwagger(app);
 
+// Root endpoint
+app.get('/', (_req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    service: 'HireFlow ATS Backend',
+    documentation: '/api/docs',
+    health: '/api/health',
+  });
+});
+
 // Production Health Check with Database Connectivity Verification
 app.get('/api/health', async (_req: Request, res: Response) => {
   let dbStatus = 'healthy';

@@ -90,38 +90,35 @@ function MyApplicationsContent() {
       ) : (
         <div className="space-y-5">
           {applications.map((app) => {
-            const stageColors = getStageColor(app.currentStage);
             const isRejected = app.currentStage === 'REJECTED';
             const scheduledInterview = app.interviews?.find((i: any) => i.status === 'SCHEDULED');
 
             return (
               <div
                 key={app.id}
-                className="bg-dark-card border border-dark-border rounded-3xl p-6 sm:p-7 shadow-card hover:border-brand-500/40 hover:-translate-y-0.5 transition-all duration-200 space-y-5"
+                className="skeuo-card-interactive rounded-3xl p-6 sm:p-7 space-y-5"
               >
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-dark-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E4E3EF]/80">
                   <div>
-                    <div className="flex items-center gap-2 text-xs font-bold text-brand-400">
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#6C5CE7]">
                       <Building2 className="w-3.5 h-3.5" />
                       <span>{app.job.company.name}</span>
-                      <span className="text-dark-border">•</span>
-                      <span className="text-dark-muted font-normal">{app.job.location}</span>
+                      <span className="text-[#E4E3EF]">•</span>
+                      <span className="text-[#68677D] font-normal">{app.job.location}</span>
                     </div>
                     <Link
                       href={`/jobs/${app.job.id}`}
-                      className="text-lg font-bold text-dark-text hover:text-brand-400 transition-colors block mt-1"
+                      className="text-lg font-bold text-[#202033] hover:text-[#6C5CE7] transition-colors block mt-1"
                     >
                       {app.job.title}
                     </Link>
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold border ${stageColors.bg} ${stageColors.text} ${stageColors.border}`}
-                    >
+                    <Badge variant={isRejected ? 'danger' : 'primary'}>
                       {app.currentStage}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
 
@@ -129,7 +126,7 @@ function MyApplicationsContent() {
                 {!isRejected && (
                   <div className="py-2 px-2 sm:px-6">
                     <div className="flex items-center justify-between relative">
-                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-dark-border -translate-y-1/2 z-0" />
+                      <div className="absolute top-1/2 left-0 right-0 h-1 bg-[#F0F1F8] border-y border-[#E4E3EF]/60 -translate-y-1/2 z-0 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.6)]" />
                       {stages.map((stageName, idx) => {
                         const currentIdx = stages.indexOf(app.currentStage);
                         const isDone = currentIdx >= idx;
@@ -140,10 +137,10 @@ function MyApplicationsContent() {
                             <div
                               className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
                                 isCurrent
-                                  ? 'bg-brand-500 border-dark-card text-white ring-4 ring-brand-500/20 shadow-glow'
+                                  ? 'bg-gradient-to-br from-indigo-500 to-indigo-700 border-[#101726] text-white ring-4 ring-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.6)] scale-110'
                                   : isDone
-                                  ? 'bg-emerald-500 border-dark-card text-white'
-                                  : 'bg-dark-input border-dark-border text-dark-dim'
+                                  ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 border-[#101726] text-white shadow-sm'
+                                  : 'bg-[#F0F1F8] border-[#E4E3EF] text-[#64748B] shadow-[inset_1px_1px_2px_rgba(0,0,0,0.5)]'
                               }`}
                             >
                               {isDone ? '✓' : idx + 1}
@@ -151,10 +148,10 @@ function MyApplicationsContent() {
                             <span
                               className={`text-[10px] font-semibold mt-1.5 hidden sm:block ${
                                 isCurrent
-                                  ? 'text-brand-300 font-bold'
+                                  ? 'text-indigo-300 font-bold'
                                   : isDone
-                                  ? 'text-dark-text'
-                                  : 'text-dark-dim'
+                                  ? 'text-[#202033]'
+                                  : 'text-[#64748B]'
                               }`}
                             >
                               {stageName}
@@ -168,16 +165,16 @@ function MyApplicationsContent() {
 
                 {/* Scheduled Interview Callout */}
                 {scheduledInterview && (
-                  <div className="p-4 bg-brand-950/25 border border-brand-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="p-4 bg-indigo-950/20 border border-indigo-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-[inset_1px_1px_2px_rgba(255,255,255,0.05)]">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-brand-500 text-white rounded-xl shadow-sm shrink-0">
+                      <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-neu-raised shrink-0">
                         <Calendar className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-bold text-dark-text">
+                        <div className="font-bold text-[#202033]">
                           {scheduledInterview.interviewType} Interview Scheduled
                         </div>
-                        <div className="text-dark-muted mt-0.5">
+                        <div className="text-[#68677D] mt-0.5">
                           {scheduledInterview.date} from {scheduledInterview.startTime} to {scheduledInterview.endTime}
                         </div>
                       </div>
@@ -188,7 +185,7 @@ function MyApplicationsContent() {
                         href={scheduledInterview.meetingLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-4 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-subtle transition-all flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+                        className="neu-btn-primary px-4 py-2 text-xs font-bold text-white rounded-xl shadow-neu-raised flex items-center gap-1.5 self-start sm:self-auto shrink-0"
                       >
                         <span>Join Meeting</span>
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -198,9 +195,9 @@ function MyApplicationsContent() {
                 )}
 
                 {/* Footer Meta & Actions */}
-                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-dark-dim">
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#68677D]">
                   <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-dark-dim" />
+                    <Clock className="w-3.5 h-3.5 text-[#64748B]" />
                     <span>Submitted on {formatDate(app.appliedAt)}</span>
                   </span>
 
@@ -208,14 +205,14 @@ function MyApplicationsContent() {
                     <button
                       type="button"
                       onClick={() => setSelectedTimelineApp(app)}
-                      className="px-3.5 py-1.5 text-xs font-semibold text-dark-text hover:text-white bg-dark-input hover:bg-dark-hover rounded-xl border border-dark-border transition-colors flex items-center gap-1.5"
+                      className="neu-btn-secondary px-3.5 py-1.5 text-xs font-semibold rounded-xl text-[#202033] flex items-center gap-1.5"
                     >
-                      <History className="w-3.5 h-3.5 text-dark-dim" />
+                      <History className="w-3.5 h-3.5 text-[#64748B]" />
                       <span>Stage Timeline</span>
                     </button>
                     <Link
                       href={`/jobs/${app.job.id}`}
-                      className="px-3.5 py-1.5 text-xs font-bold text-brand-300 bg-brand-500/15 hover:bg-brand-500/25 border border-brand-500/20 rounded-xl transition-colors flex items-center gap-1"
+                      className="neu-btn-primary px-3.5 py-1.5 text-xs font-bold text-white rounded-xl shadow-neu-raised flex items-center gap-1"
                     >
                       <span>View Job</span>
                       <ArrowRight className="w-3.5 h-3.5" />

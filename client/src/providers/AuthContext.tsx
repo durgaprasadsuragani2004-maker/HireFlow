@@ -98,7 +98,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       showToast(`Welcome back, ${loggedInUser.email}!`, 'success');
       return loggedInUser;
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      const errorList = err.response?.data?.errors;
+      const detailedMsg = Array.isArray(errorList) && errorList.length > 0
+        ? errorList.map((e: any) => e.message).filter(Boolean).join('; ')
+        : null;
+      const msg = detailedMsg || err.response?.data?.message || 'Login failed. Please check your credentials.';
       showToast(msg, 'error');
       throw err;
     } finally {
@@ -117,7 +121,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       showToast('Account registered successfully!', 'success');
       return registeredUser;
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Registration failed.';
+      const errorList = err.response?.data?.errors;
+      const detailedMsg = Array.isArray(errorList) && errorList.length > 0
+        ? errorList.map((e: any) => e.message).filter(Boolean).join('; ')
+        : null;
+      const msg = detailedMsg || err.response?.data?.message || 'Registration failed.';
       showToast(msg, 'error');
       throw err;
     } finally {

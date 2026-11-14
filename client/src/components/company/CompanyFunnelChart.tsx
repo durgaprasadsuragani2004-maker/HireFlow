@@ -98,24 +98,25 @@ export const CompanyFunnelChart: React.FC<CompanyFunnelChartProps> = ({
             <BarChart data={funnel} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
               <XAxis
                 dataKey="stage"
-                tick={{ fontSize: 10, fill: '#A1AEC2' }}
-                axisLine={{ stroke: '#2B3950' }}
+                tick={{ fontSize: 10, fill: '#68677D' }}
+                axisLine={{ stroke: '#E4E3EF' }}
                 tickLine={false}
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 10, fill: '#A1AEC2' }}
-                axisLine={{ stroke: '#2B3950' }}
+                tick={{ fontSize: 10, fill: '#68677D' }}
+                axisLine={{ stroke: '#E4E3EF' }}
                 tickLine={false}
               />
               <Tooltip
-                cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                cursor={{ fill: 'rgba(108, 92, 231, 0.05)' }}
                 contentStyle={{
-                  backgroundColor: '#1C2940',
-                  borderColor: '#2B3950',
+                  backgroundColor: '#FFFFFF',
+                  borderColor: '#E4E3EF',
                   borderRadius: '0.75rem',
-                  color: '#F1F5F9',
+                  color: '#202033',
                   fontSize: '12px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                 }}
               />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>

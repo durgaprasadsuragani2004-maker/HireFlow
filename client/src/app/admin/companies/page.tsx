@@ -349,19 +349,19 @@ export default function AdminCompaniesPage() {
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="bg-dark-card border border-dark-border rounded-2xl p-4 shadow-card flex items-center gap-3">
-          <Search className="w-4 h-4 text-dark-dim shrink-0 ml-1" />
+        <div className="skeuo-card rounded-2xl p-4 flex items-center gap-3">
+          <Search className="w-4 h-4 text-[#9E9EB3] shrink-0 ml-1" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search organizations by name, industry, or location..."
-            className="w-full text-xs bg-transparent text-dark-text focus:outline-none placeholder:text-dark-dim"
+            className="w-full text-xs bg-transparent text-[#202033] focus:outline-none placeholder:text-[#9E9EB3]"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="text-xs text-dark-dim hover:text-dark-muted px-2"
+              className="text-xs text-[#9E9EB3] hover:text-[#68677D] px-2"
             >
               <X className="w-4 h-4" />
             </button>
@@ -376,12 +376,12 @@ export default function AdminCompaniesPage() {
             ))}
           </div>
         ) : filteredCompanies.length === 0 ? (
-          <div className="p-12 text-center bg-dark-card border border-dark-border rounded-3xl shadow-card space-y-3">
-            <Building2 className="w-12 h-12 text-dark-dim mx-auto" />
-            <h3 className="font-bold text-dark-text text-base">
+          <div className="p-12 text-center skeuo-card rounded-3xl space-y-3">
+            <Building2 className="w-12 h-12 text-[#9E9EB3] mx-auto" />
+            <h3 className="font-bold text-[#202033] text-base">
               No Organizations Found
             </h3>
-            <p className="text-xs text-dark-muted max-w-sm mx-auto">
+            <p className="text-xs text-[#68677D] max-w-sm mx-auto">
               {search
                 ? `No company matches "${search}". Try clearing your search query.`
                 : 'No companies are currently registered in the ATS ecosystem.'}
@@ -402,68 +402,68 @@ export default function AdminCompaniesPage() {
             {filteredCompanies.map((c) => (
               <div
                 key={c.id}
-                className="bg-dark-card border border-dark-border rounded-3xl p-5 sm:p-6 shadow-card hover:border-brand-500/40 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
+                className="skeuo-card-interactive rounded-3xl p-5 sm:p-6 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0">
-                      <h3 className="font-bold text-base text-dark-text truncate">
+                      <h3 className="font-bold text-base text-[#202033] truncate">
                         {c.name}
                       </h3>
                       {c.industry && (
-                        <span className="text-[11px] font-bold text-brand-400 block mt-0.5">
+                        <span className="text-[11px] font-bold text-indigo-400 block mt-0.5">
                           {c.industry}
                         </span>
                       )}
                     </div>
                     {c.companySize && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-lg bg-dark-input text-dark-muted font-bold shrink-0 border border-dark-border">
+                      <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#101726] text-[#68677D] font-bold shrink-0 border border-[#E4E3EF]/80 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.4)]">
                         {c.companySize} emp
                       </span>
                     )}
                   </div>
 
                   {c.location && (
-                    <div className="flex items-center gap-1.5 text-xs text-dark-dim mt-1">
-                      <MapPin className="w-3.5 h-3.5 text-dark-dim" />
+                    <div className="flex items-center gap-1.5 text-xs text-[#68677D] mt-1">
+                      <MapPin className="w-3.5 h-3.5 text-[#9E9EB3]" />
                       <span>{c.location}</span>
                     </div>
                   )}
 
                   {c.description && (
-                    <p className="text-xs text-dark-muted mt-2.5 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-[#68677D] mt-2.5 line-clamp-2 leading-relaxed">
                       {c.description}
                     </p>
                   )}
 
                   {/* Summary Counters */}
-                  <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-dark-border text-center text-xs">
-                    <div className="p-2 rounded-2xl bg-dark-input/60 border border-dark-border">
-                      <div className="font-bold text-dark-text text-sm">
+                  <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#E4E3EF] text-center text-xs">
+                    <div className="p-2.5 rounded-2xl bg-[#F8F8FC] border border-[#E4E3EF]">
+                      <div className="font-bold text-[#202033] text-sm">
                         {c._count?.jobs ?? 0}
                       </div>
-                      <div className="text-[10px] text-dark-dim font-medium">Jobs</div>
+                      <div className="text-[10px] text-[#68677D] font-medium">Jobs</div>
                     </div>
-                    <div className="p-2 rounded-2xl bg-dark-input/60 border border-dark-border">
-                      <div className="font-bold text-dark-text text-sm">
+                    <div className="p-2.5 rounded-2xl bg-[#F8F8FC] border border-[#E4E3EF]">
+                      <div className="font-bold text-[#202033] text-sm">
                         {c._count?.recruiters ?? (c.recruiters?.length || 0)}
                       </div>
-                      <div className="text-[10px] text-dark-dim font-medium">Recruiters</div>
+                      <div className="text-[10px] text-[#68677D] font-medium">Recruiters</div>
                     </div>
-                    <div className="p-2 rounded-2xl bg-dark-input/60 border border-dark-border">
-                      <div className="font-bold text-dark-text text-sm">
+                    <div className="p-2.5 rounded-2xl bg-[#F8F8FC] border border-[#E4E3EF]">
+                      <div className="font-bold text-[#202033] text-sm">
                         {c.totalApplications ?? 0}
                       </div>
-                      <div className="text-[10px] text-dark-dim font-medium">Applicants</div>
+                      <div className="text-[10px] text-[#68677D] font-medium">Applicants</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Card Actions */}
-                <div className="mt-5 pt-3.5 border-t border-dark-border flex items-center justify-between">
+                <div className="mt-5 pt-3.5 border-t border-[#E4E3EF]/80 flex items-center justify-between">
                   <button
                     onClick={() => openCompanyDetails(c)}
-                    className="text-xs font-bold text-brand-400 hover:text-brand-300 flex items-center gap-1"
+                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
                   >
                     <span>View Funnel & Telemetry</span>
                   </button>
@@ -471,7 +471,7 @@ export default function AdminCompaniesPage() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openCompanyDetails(c)}
-                      className="p-1.5 text-dark-dim hover:text-brand-400 hover:bg-dark-hover rounded-lg transition"
+                      className="p-1.5 text-[#68677D] hover:text-indigo-400 hover:bg-[#1C2940] rounded-lg transition"
                       title="Edit organization"
                     >
                       <Edit className="w-4 h-4" />
@@ -479,7 +479,7 @@ export default function AdminCompaniesPage() {
                     <button
                       onClick={() => handleDeleteCompany(c.id)}
                       disabled={deletingId === c.id}
-                      className="p-1.5 text-dark-dim hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition disabled:opacity-40"
+                      className="p-1.5 text-[#68677D] hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition disabled:opacity-40"
                       title="Delete organization"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -503,7 +503,7 @@ export default function AdminCompaniesPage() {
             <form onSubmit={handleCreateCompany} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Company Name *
                   </label>
                   <input
@@ -512,11 +512,11 @@ export default function AdminCompaniesPage() {
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
                     placeholder="TechNova Solutions Inc."
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Industry
                   </label>
                   <input
@@ -524,14 +524,14 @@ export default function AdminCompaniesPage() {
                     value={createIndustry}
                     onChange={(e) => setCreateIndustry(e.target.value)}
                     placeholder="e.g. Cloud Infrastructure & AI"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Website URL
                   </label>
                   <input
@@ -539,11 +539,11 @@ export default function AdminCompaniesPage() {
                     value={createWebsite}
                     onChange={(e) => setCreateWebsite(e.target.value)}
                     placeholder="https://company.com"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Headquarters Location
                   </label>
                   <input
@@ -551,30 +551,30 @@ export default function AdminCompaniesPage() {
                     value={createLocation}
                     onChange={(e) => setCreateLocation(e.target.value)}
                     placeholder="San Francisco, CA"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Company Size
                   </label>
                   <select
                     value={createCompanySize}
                     onChange={(e) => setCreateCompanySize(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs font-semibold"
                   >
-                    <option value="1-10" className="bg-dark-card">1-10</option>
-                    <option value="11-50" className="bg-dark-card">11-50</option>
-                    <option value="51-200" className="bg-dark-card">51-200</option>
-                    <option value="201-500" className="bg-dark-card">201-500</option>
-                    <option value="500+" className="bg-dark-card">500+</option>
+                    <option value="1-10" className="bg-[#101726]">1-10</option>
+                    <option value="11-50" className="bg-[#101726]">11-50</option>
+                    <option value="51-200" className="bg-[#101726]">51-200</option>
+                    <option value="201-500" className="bg-[#101726]">201-500</option>
+                    <option value="500+" className="bg-[#101726]">500+</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Contact Email
                   </label>
                   <input
@@ -582,11 +582,11 @@ export default function AdminCompaniesPage() {
                     value={createContactEmail}
                     onChange={(e) => setCreateContactEmail(e.target.value)}
                     placeholder="recruiting@company.com"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Contact Phone
                   </label>
                   <input
@@ -594,13 +594,13 @@ export default function AdminCompaniesPage() {
                     value={createContactPhone}
                     onChange={(e) => setCreateContactPhone(e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                   Company Overview & Notes
                 </label>
                 <textarea
@@ -608,58 +608,58 @@ export default function AdminCompaniesPage() {
                   value={createDescription}
                   onChange={(e) => setCreateDescription(e.target.value)}
                   placeholder="Enterprise background, hiring domain, and recruiter assignments..."
-                  className="w-full p-3 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 leading-relaxed placeholder:text-dark-dim"
+                  className="skeuo-input w-full p-3 text-xs leading-relaxed"
                 />
               </div>
 
               {/* Provision Initial Company Login Account */}
-              <div className="p-4 rounded-2xl bg-[#101726] border border-[#2B3950] space-y-3">
+              <div className="p-4 rounded-2xl bg-[#101726] border border-[#E4E3EF] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <KeyRound className="w-4 h-4 text-teal-400" />
-                    <span className="text-xs font-bold text-[#F1F5F9]">
+                    <span className="text-xs font-bold text-[#202033]">
                       Provision Company Account Login Credentials
                     </span>
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-[#A1AEC2] cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-[#68677D] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={provisionAccountNow}
                       onChange={(e) => setProvisionAccountNow(e.target.checked)}
-                      className="rounded border-[#2B3950] bg-[#151F32] text-teal-600 focus:ring-teal-500/40"
+                      className="rounded border-[#E4E3EF] bg-[#151F32] text-teal-600 focus:ring-teal-500/40"
                     />
                     <span>Provision Now</span>
                   </label>
                 </div>
-                <p className="text-[11px] text-[#A1AEC2]">
+                <p className="text-[11px] text-[#68677D]">
                   Create an authenticated login account with role <strong className="text-teal-300">COMPANY</strong> linked directly to this organization so the company can sign in immediately through the standard email/password login page.
                 </p>
 
                 {provisionAccountNow && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block text-[11px] font-semibold text-[#A1AEC2] mb-1">
+                      <label className="block text-[11px] font-semibold text-[#68677D] mb-1">
                         Company Login Email *
                       </label>
                       <div className="relative">
-                        <Mail className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#64748B]" />
+                        <Mail className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#9E9EB3]" />
                         <input
                           type="email"
                           required={provisionAccountNow}
                           value={accountEmail}
                           onChange={(e) => setAccountEmail(e.target.value)}
                           placeholder="company@domain.com"
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 placeholder:text-[#64748B]"
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#E4E3EF] bg-[#151F32] text-[#202033] focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 placeholder:text-[#9E9EB3]"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-[#A1AEC2] mb-1">
+                      <label className="block text-[11px] font-semibold text-[#68677D] mb-1">
                         Initial Password (min 6 chars) *
                       </label>
                       <div className="relative">
-                        <Lock className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#64748B]" />
+                        <Lock className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#9E9EB3]" />
                         <input
                           type={showAccountPassword ? 'text' : 'password'}
                           required={provisionAccountNow}
@@ -667,12 +667,12 @@ export default function AdminCompaniesPage() {
                           value={accountPassword}
                           onChange={(e) => setAccountPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 placeholder:text-[#64748B]"
+                          className="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-[#E4E3EF] bg-[#151F32] text-[#202033] focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 placeholder:text-[#9E9EB3]"
                         />
                         <button
                           type="button"
                           onClick={() => setShowAccountPassword(!showAccountPassword)}
-                          className="absolute right-2.5 top-2.5 text-[#64748B] hover:text-[#F1F5F9]"
+                          className="absolute right-2.5 top-2.5 text-[#9E9EB3] hover:text-[#202033]"
                           aria-label={showAccountPassword ? 'Hide password' : 'Show password'}
                         >
                           {showAccountPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -751,11 +751,11 @@ export default function AdminCompaniesPage() {
                   )}
 
                   {/* Company Login Accounts Management */}
-                  <div className="p-4 rounded-2xl bg-[#101726] border border-[#2B3950] space-y-3">
+                  <div className="p-4 rounded-2xl bg-[#101726] border border-[#E4E3EF] space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <KeyRound className="w-4 h-4 text-teal-400" />
-                        <span className="text-xs font-bold text-[#F1F5F9]">
+                        <span className="text-xs font-bold text-[#202033]">
                           Company Login Accounts
                         </span>
                       </div>
@@ -772,7 +772,7 @@ export default function AdminCompaniesPage() {
                     </div>
 
                     {(!selectedCompany.users || selectedCompany.users.filter((u: any) => u.role === 'COMPANY').length === 0) ? (
-                      <div className="p-3 text-center text-xs text-[#A1AEC2] bg-[#151F32] rounded-xl border border-[#2B3950]/60">
+                      <div className="p-3 text-center text-xs text-[#68677D] bg-[#151F32] rounded-xl border border-[#E4E3EF]/60">
                         No company login accounts provisioned yet for this organization.{' '}
                         <button
                           type="button"
@@ -783,20 +783,20 @@ export default function AdminCompaniesPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="divide-y divide-[#2B3950]/60 rounded-xl border border-[#2B3950] overflow-hidden bg-[#151F32]">
+                      <div className="divide-y divide-[#E4E3EF] rounded-xl border border-[#E4E3EF] overflow-hidden bg-[#F8F8FC]">
                         {selectedCompany.users
                           .filter((u: any) => u.role === 'COMPANY')
                           .map((u: any) => (
                             <div key={u.id} className="p-2.5 flex items-center justify-between text-xs">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Mail className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                                <span className="font-semibold text-[#F1F5F9] truncate">{u.email}</span>
+                                <span className="font-semibold text-[#202033] truncate">{u.email}</span>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold">
                                   {u.status || 'ACTIVE'}
                                 </span>
-                                <span className="text-[10px] text-[#A1AEC2]">
+                                <span className="text-[10px] text-[#68677D]">
                                   {new Date(u.createdAt).toLocaleDateString()}
                                 </span>
                               </div>
@@ -821,7 +821,7 @@ export default function AdminCompaniesPage() {
                 <form onSubmit={handleSaveCompanyEdit} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Company Name *
                       </label>
                       <input
@@ -829,56 +829,56 @@ export default function AdminCompaniesPage() {
                         required
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Industry
                       </label>
                       <input
                         type="text"
                         value={editIndustry}
                         onChange={(e) => setEditIndustry(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Website
                       </label>
                       <input
                         type="url"
                         value={editWebsite}
                         onChange={(e) => setEditWebsite(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Location
                       </label>
                       <input
                         type="text"
                         value={editLocation}
                         onChange={(e) => setEditLocation(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-dark-dim"
+                        className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                    <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                       Description
                     </label>
                     <textarea
                       rows={3}
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
-                      className="w-full p-3.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 leading-relaxed placeholder:text-dark-dim"
+                      className="skeuo-input w-full p-3.5 text-xs leading-relaxed"
                     />
                   </div>
 
@@ -921,9 +921,9 @@ export default function AdminCompaniesPage() {
             maxWidth="max-w-md"
           >
             <form onSubmit={handleProvisionExistingAccount} className="space-y-4">
-              <div className="p-3 rounded-xl bg-[#101726] border border-[#2B3950] text-xs text-[#A1AEC2] space-y-1">
+              <div className="p-3 rounded-xl bg-[#101726] border border-[#E4E3EF] text-xs text-[#68677D] space-y-1">
                 <p>
-                  This account will have the role <strong className="text-teal-300">COMPANY</strong> and will be strictly bound to <strong className="text-[#F1F5F9]">{selectedCompany.name}</strong>.
+                  This account will have the role <strong className="text-teal-300">COMPANY</strong> and will be strictly bound to <strong className="text-[#202033]">{selectedCompany.name}</strong>.
                 </p>
                 <p>
                   The user will be able to log in using standard credentials and manage only this company&apos;s jobs, recruiters, and applicants.
@@ -935,24 +935,24 @@ export default function AdminCompaniesPage() {
                   Company Login Email *
                 </label>
                 <div className="relative">
-                  <Mail className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#64748B]" />
+                  <Mail className="w-3.5 h-3.5 absolute left-3 top-3 text-[#9E9EB3]" />
                   <input
                     type="email"
                     required
                     value={existingAccountEmail}
                     onChange={(e) => setExistingAccountEmail(e.target.value)}
                     placeholder="admin@company.com"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full pl-9 pr-3 py-2 text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-dark-text mb-1.5">
+                <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                   Initial Password (min 6 characters) *
                 </label>
                 <div className="relative">
-                  <Lock className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#64748B]" />
+                  <Lock className="w-3.5 h-3.5 absolute left-3 top-3 text-[#9E9EB3]" />
                   <input
                     type={showExistingPassword ? 'text' : 'password'}
                     required
@@ -960,12 +960,12 @@ export default function AdminCompaniesPage() {
                     value={existingAccountPassword}
                     onChange={(e) => setExistingAccountPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 placeholder:text-dark-dim"
+                    className="skeuo-input w-full pl-9 pr-9 py-2 text-xs"
                   />
                   <button
                     type="button"
                     onClick={() => setShowExistingPassword(!showExistingPassword)}
-                    className="absolute right-2.5 top-2.5 text-[#64748B] hover:text-[#F1F5F9]"
+                    className="absolute right-2.5 top-2.5 text-[#9E9EB3] hover:text-[#202033]"
                     aria-label={showExistingPassword ? 'Hide password' : 'Show password'}
                   >
                     {showExistingPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}

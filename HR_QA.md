@@ -59,7 +59,7 @@ Recruitment systems deal with deeply relational, structured data that demands st
 - **End-to-End Type Safety**: Prisma generates TypeScript client types directly from `schema.prisma`. Any schema migration automatically reflects in compile-time checks across all backend controllers and services.
 - **Declarative Migration Engine**: `prisma migrate deploy` tracks and executes versioned SQL migrations across production environments deterministically.
 - **Interactive Transactions**: Uses `prisma.$transaction(async (tx) => { ... })` for complex workflows requiring atomic all-or-nothing guarantees.
-- **Multi-Database Adaptability**: The codebase maintains parity between PostgreSQL for production and SQLite for zero-setup local integration testing via `prisma-runner.js`.
+- **Production-Ready PostgreSQL**: The platform uses PostgreSQL 16 with native enums, indexes, and cascading constraints for enterprise reliability.
 
 ---
 

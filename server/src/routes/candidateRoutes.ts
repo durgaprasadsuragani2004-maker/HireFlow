@@ -9,7 +9,7 @@ const router = Router();
 router.get(
   '/',
   authenticate,
-  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN),
+  authorizeRoles(ROLES.RECRUITER, ROLES.SUPER_ADMIN, ROLES.COMPANY),
   candidateController.queryCandidates
 );
 

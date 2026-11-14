@@ -1,18 +1,39 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../config/env';
 import { AppError } from './errorHandler';
 
-// Ensure upload directory exists
-if (!fs.existsSync(env.UPLOAD_DIR)) {
-  fs.mkdirSync(env.UPLOAD_DIR, { recursive: true });
+// Determine safe upload directory (fallback to OS tempdir in serverless/read-only environments)
+export const getUploadDirectory = (): string => {
+  if (process.env.VERCEL) {
+    return path.join(os.tmpdir(), 'hireflow-uploads');
+  }
+  return env.UPLOAD_DIR;
+};
+
+const initialUploadDir = getUploadDirectory();
+try {
+  if (!fs.existsSync(initialUploadDir)) {
+    fs.mkdirSync(initialUploadDir, { recursive: true });
+  }
+} catch {
+  // In read-only serverless environments, S3 is used and local directory creation may be restricted
 }
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, env.UPLOAD_DIR);
+    const dir = getUploadDirectory();
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    } catch {
+      // Ignore directory creation errors if read-only
+    }
+    cb(null, dir);
   },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -45,7 +66,7 @@ const fileFilter = (
 export const uploadResume = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 10MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter,
 });

@@ -40,7 +40,7 @@ const jobBaseSchema = z.object({
       },
       (val) => {
         const res = validateJobDeadline(val);
-        return { message: res.error || 'Application deadline cannot be in the past.' };
+        return { message: res.error || 'Application deadline cannot be in the past. Please select today or a future date.' };
       }
     ),
   status: z.enum([JOB_STATUS.DRAFT, JOB_STATUS.PUBLISHED, JOB_STATUS.ARCHIVED]).optional(),

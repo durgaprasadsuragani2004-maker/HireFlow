@@ -18,13 +18,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased text-dark-text bg-dark-app min-h-screen flex flex-col selection:bg-brand-500/20 selection:text-brand-300">
+      <body className="antialiased text-[#202033] bg-[#F5F6FA] min-h-screen flex flex-col selection:bg-[#EAE7FF] selection:text-[#6C5CE7]">
         <ToastProvider>
           <AuthProvider>
             <Navbar />
-            <div className="flex-1 flex w-full">
+            <div className="flex-1 flex w-full relative">
               <Sidebar />
-              <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto">
+              <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:px-8 w-full max-w-[1600px] mx-auto transition-all duration-300">
                 {children}
               </main>
             </div>

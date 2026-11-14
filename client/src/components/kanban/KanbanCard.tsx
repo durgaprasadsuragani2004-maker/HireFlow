@@ -53,10 +53,10 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     <div
       ref={setCardRef}
       style={style}
-      className={`group relative bg-[#101726] border rounded-2xl p-3.5 shadow-card hover:shadow-card-hover hover:border-indigo-500/50 hover:-translate-y-0.5 transition-all duration-200 select-none mb-3 ${
+      className={`group relative bg-white border rounded-2xl p-3.5 shadow-sm hover:shadow-md hover:border-[#8B7CF6] hover:-translate-y-0.5 transition-all duration-200 select-none mb-3 ${
         isDragging
-          ? 'border-indigo-500 shadow-2xl ring-2 ring-indigo-500/40'
-          : 'border-[#2B3950]'
+          ? 'border-[#6C5CE7] shadow-xl ring-2 ring-[#6C5CE7]/30'
+          : 'border-[#E4E3EF]'
       }`}
     >
       <div
@@ -67,7 +67,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span
-              className="p-1 -ml-1 text-[#64748B] group-hover:text-indigo-400 transition-colors"
+              className="p-1 -ml-1 text-[#9E9EB3] group-hover:text-[#6C5CE7] transition-colors"
               title="Drag candidate to change recruitment stage"
             >
               <GripVertical className="w-4 h-4" />
@@ -79,19 +79,19 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                 e.stopPropagation();
                 onViewDetails(application);
               }}
-              className="font-bold text-xs sm:text-sm text-[#F1F5F9] hover:text-indigo-400 truncate text-left transition-colors"
+              className="font-bold text-xs sm:text-sm text-[#202033] hover:text-[#6C5CE7] truncate text-left transition-colors cursor-pointer"
             >
               {applicant?.fullName || 'Candidate'}
             </button>
           </div>
-          <p className="text-[11px] text-[#A1AEC2] truncate mt-0.5 ml-5 font-mono">
+          <p className="text-[11px] text-[#68677D] truncate mt-0.5 ml-5 font-mono">
             {applicant?.headline || applicant?.user?.email || 'Applicant'}
           </p>
         </div>
 
         {rating > 0 && (
-          <div className="flex items-center gap-1 text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-amber-500/30 shrink-0">
-            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+          <div className="flex items-center gap-1 text-[#C47D15] bg-[#E9A23B]/15 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-[#E9A23B]/30 shrink-0">
+            <Star className="w-3 h-3 fill-[#E9A23B] text-[#E9A23B]" />
             <span>{rating}</span>
           </div>
         )}
@@ -103,13 +103,13 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           {applicant.skills.slice(0, 3).map((s: any) => (
             <span
               key={s.id || s.name}
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#1E293B] text-[#A1AEC2] border border-[#2B3950]"
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#F0F1F8] text-[#68677D] border border-[#E4E3EF]"
             >
               {s.name}
             </span>
           ))}
           {applicant.skills.length > 3 && (
-            <span className="text-[10px] text-[#64748B] self-center font-medium">
+            <span className="text-[10px] text-[#9E9EB3] self-center font-medium">
               +{applicant.skills.length - 3}
             </span>
           )}
@@ -118,8 +118,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
 
       {/* Interview status indicator */}
       {nextInterview && (
-        <div className="mt-2.5 ml-5 flex items-center gap-1.5 text-[11px] font-semibold text-indigo-300 bg-indigo-500/10 p-1.5 rounded-xl border border-indigo-500/20">
-          <Calendar className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+        <div className="mt-2.5 ml-5 flex items-center gap-1.5 text-[11px] font-semibold text-[#6C5CE7] bg-[#EAE7FF] p-1.5 rounded-xl border border-[#8B7CF6]/30">
+          <Calendar className="w-3.5 h-3.5 text-[#6C5CE7] shrink-0" />
           <span className="truncate">
             {nextInterview.interviewType || nextInterview.type}: {nextInterview.date}
           </span>
@@ -127,8 +127,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
       )}
 
       {/* Footer controls */}
-      <div className="mt-3 ml-5 pt-2 border-t border-[#2B3950] flex items-center justify-between text-xs text-[#64748B]">
-        <span className="text-[10px] text-[#64748B]">
+      <div className="mt-3 ml-5 pt-2 border-t border-[#E4E3EF] flex items-center justify-between text-xs text-[#68677D]">
+        <span className="text-[10px] text-[#9E9EB3]">
           {new Date(application.appliedAt).toLocaleDateString()}
         </span>
 
@@ -142,7 +142,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                 onScheduleInterview(application);
               }}
               title="Schedule Interview"
-              className="p-1 hover:bg-[#1C2940] rounded-lg text-[#A1AEC2] hover:text-indigo-400 focus-ring active:scale-90 transition-all duration-150"
+              className="neu-icon-btn p-1 text-[#68677D] hover:text-[#6C5CE7] cursor-pointer"
             >
               <Calendar className="w-3.5 h-3.5" />
             </button>
@@ -156,7 +156,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
               onViewHistory(application);
             }}
             title="View Stage History Audit Trail"
-            className="p-1 hover:bg-[#1C2940] rounded-lg text-[#A1AEC2] hover:text-indigo-400 focus-ring active:scale-90 transition-all duration-150"
+            className="neu-icon-btn p-1 text-[#68677D] hover:text-[#6C5CE7] cursor-pointer"
           >
             <History className="w-3.5 h-3.5" />
           </button>
@@ -169,7 +169,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
               onViewDetails(application);
             }}
             title="View Application Details"
-            className="p-1 hover:bg-[#1C2940] rounded-lg text-[#A1AEC2] hover:text-[#F1F5F9] focus-ring active:scale-90 transition-all duration-150"
+            className="neu-icon-btn p-1 text-[#68677D] hover:text-[#202033] cursor-pointer"
           >
             <Eye className="w-3.5 h-3.5" />
           </button>

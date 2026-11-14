@@ -27,7 +27,7 @@ export default function AdminAuditPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [limit] = useState(25);
+  const [limit, setLimit] = useState(25);
   const [actionFilter, setActionFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,53 +98,21 @@ export default function AdminAuditPage() {
         id: log.user.id || null,
       };
     }
-    if (typeof log.actor === 'string' && log.actor.trim()) {
+    if (typeof log.actor === 'string' && log.actor.includes('@')) {
       return { email: log.actor, role: null, id: null };
     }
-    if (typeof log.actorId === 'string' && log.actorId.trim()) {
-      return { email: `User #${log.actorId.slice(0, 8)}`, role: null, id: log.actorId };
-    }
-    return { email: 'System Service', role: null, id: null };
+    return { email: 'System Agent', role: 'AUTOMATION', id: null };
   };
 
-  // Safely format metadata object/string
-  const formatMetadata = (meta: any, details?: any) => {
-    if (meta) {
-      if (typeof meta === 'string') {
-        try {
-          const parsed = JSON.parse(meta);
-          if (typeof parsed === 'object' && parsed !== null) {
-            return Object.entries(parsed)
-              .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
-              .join(', ');
-          }
-          return meta;
-        } catch {
-          return meta;
-        }
-      }
-      if (typeof meta === 'object') {
-        try {
-          return Object.entries(meta)
-            .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
-            .join(', ');
-        } catch {
-          return JSON.stringify(meta);
-        }
-      }
-      return String(meta);
+  const formatMetadata = (metadata: any, details: any) => {
+    const target = metadata || details;
+    if (!target) return '—';
+    if (typeof target === 'string') return target;
+    try {
+      return JSON.stringify(target);
+    } catch {
+      return '—';
     }
-    if (details) {
-      if (typeof details === 'object') {
-        try {
-          return JSON.stringify(details);
-        } catch {
-          return String(details);
-        }
-      }
-      return String(details);
-    }
-    return '-';
   };
 
   const totalPages = Math.ceil(total / limit) || 1;
@@ -152,34 +120,35 @@ export default function AdminAuditPage() {
   return (
     <AuthGuard allowedRoles={['SUPER_ADMIN']}>
       <div className="space-y-6 max-w-7xl mx-auto py-2">
-        {/* Breadcrumb Navigation */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-dark-dim">
+        {/* Breadcrumbs */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#9E9EB3]">
           <Link
             href="/"
-            className="flex items-center gap-1 hover:text-brand-400 transition-colors"
+            className="flex items-center gap-1 hover:text-[#6C5CE7] transition-colors"
           >
             <Home className="w-3.5 h-3.5" />
             <span>Home</span>
           </Link>
-          <span className="text-dark-border">/</span>
-          <Link href="/dashboard" className="hover:text-brand-400 transition-colors">
+          <span className="text-[#E4E3EF]">/</span>
+          <Link href="/dashboard" className="hover:text-[#6C5CE7] transition-colors">
             Dashboard
           </Link>
-          <span className="text-dark-border">/</span>
-          <span className="text-dark-text font-semibold">Security Audit Trail</span>
+          <span className="text-[#E4E3EF]">/</span>
+          <span className="text-[#202033] font-semibold">Audit Trail</span>
         </nav>
 
+        {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#EAE7FF] border border-[#8B7CF6]/30 text-[#6C5CE7] flex items-center justify-center shadow-inner">
+                <Activity className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-bold text-dark-text tracking-tight">
-                Enterprise Security & Audit Trail
+              <h1 className="text-2xl font-bold text-[#202033] tracking-tight">
+                Security & Audit Ledger
               </h1>
             </div>
-            <p className="text-xs text-dark-muted mt-1 ml-10">
+            <p className="text-xs text-[#68677D] mt-1 ml-11.5">
               Immutable ledger of system authorizations, stage transitions, job mutations, and administrative overrides.
             </p>
           </div>
@@ -191,36 +160,36 @@ export default function AdminAuditPage() {
               setActionFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3.5 py-2 rounded-xl border border-dark-border bg-dark-input text-xs font-semibold text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 self-start sm:self-auto shadow-subtle cursor-pointer"
+            className="skeuo-input px-3.5 py-2 text-xs font-semibold self-start sm:self-auto cursor-pointer"
           >
-            <option value="" className="bg-dark-card">All Audit Actions ({total})</option>
-            <option value="USER_LOGIN" className="bg-dark-card">User Logins</option>
-            <option value="JOB_CREATE" className="bg-dark-card">Job Creation</option>
-            <option value="APPLICATION_STAGE_CHANGE" className="bg-dark-card">Stage Transitions</option>
-            <option value="INTERVIEW_SCHEDULE" className="bg-dark-card">Interview Schedules</option>
-            <option value="USER_STATUS_CHANGE" className="bg-dark-card">User Status Changes</option>
-            <option value="COMPANY_CREATE" className="bg-dark-card">Company Creation</option>
+            <option value="" className="bg-[#151F32]">All Audit Actions ({total})</option>
+            <option value="USER_LOGIN" className="bg-[#151F32]">User Logins</option>
+            <option value="JOB_CREATE" className="bg-[#151F32]">Job Creation</option>
+            <option value="APPLICATION_STAGE_CHANGE" className="bg-[#151F32]">Stage Transitions</option>
+            <option value="INTERVIEW_SCHEDULE" className="bg-[#151F32]">Interview Schedules</option>
+            <option value="USER_STATUS_CHANGE" className="bg-[#151F32]">User Status Changes</option>
+            <option value="COMPANY_CREATE" className="bg-[#151F32]">Company Creation</option>
           </select>
         </div>
 
         {/* Error State */}
         {error ? (
-          <div className="p-8 text-center bg-[#151F32] border border-[#2B3950] rounded-3xl shadow-card max-w-lg mx-auto my-8">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto mb-3 border border-rose-500/20">
+          <div className="p-8 text-center skeuo-card border border-[#E4E3EF] rounded-3xl max-w-lg mx-auto my-8">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto mb-3 border border-rose-500/20 shadow-inner">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-[#F1F5F9]">Unable to Load Audit Trail</h3>
-            <p className="text-xs text-[#A1AEC2] mt-1 max-w-sm mx-auto leading-relaxed">{error}</p>
+            <h3 className="text-base font-bold text-[#202033]">Unable to Load Audit Trail</h3>
+            <p className="text-xs text-[#68677D] mt-1 max-w-sm mx-auto leading-relaxed">{error}</p>
             <Button onClick={fetchLogs} variant="primary" size="sm" className="mt-5">
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
             </Button>
           </div>
         ) : (
-          /* Logs Table */
-          <div className="bg-dark-card border border-dark-border rounded-3xl overflow-hidden shadow-card">
+          /* Logs Table Container */
+          <div className="skeuo-card border border-[#E4E3EF] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-dark-input/80 border-b border-dark-border text-dark-dim font-bold uppercase tracking-wider text-[11px]">
+                <thead className="skeuo-table-head text-[#68677D] font-bold uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="py-3.5 px-5">Timestamp</th>
                     <th className="py-3.5 px-4">Action</th>
@@ -229,10 +198,10 @@ export default function AdminAuditPage() {
                     <th className="py-3.5 px-5">Context / Metadata</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-dark-border font-sans">
+                <tbody className="divide-y divide-[#24334C] font-sans">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-dark-dim">
+                      <td colSpan={5} className="py-12 text-center text-[#9E9EB3]">
                         <div className="max-w-xs mx-auto space-y-2">
                           <Skeleton className="h-4 w-full" />
                           <Skeleton className="h-4 w-3/4 mx-auto" />
@@ -241,7 +210,7 @@ export default function AdminAuditPage() {
                     </tr>
                   ) : logs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-dark-dim">
+                      <td colSpan={5} className="py-12 text-center text-[#9E9EB3]">
                         No security audit events recorded.
                       </td>
                     </tr>
@@ -254,8 +223,8 @@ export default function AdminAuditPage() {
                       const entityIdStr = typeof log.entityId === 'object' ? JSON.stringify(log.entityId) : log.entityId;
 
                       return (
-                        <tr key={log.id} className="hover:bg-dark-hover/60 transition-colors">
-                          <td className="py-3.5 px-5 text-dark-dim text-[11px] font-mono whitespace-nowrap">
+                        <tr key={log.id} className="skeuo-table-row">
+                          <td className="py-3.5 px-5 text-[#9E9EB3] text-[11px] font-mono whitespace-nowrap">
                             {new Date(log.timestamp || log.createdAt).toLocaleString()}
                           </td>
 
@@ -266,14 +235,14 @@ export default function AdminAuditPage() {
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-1.5 font-semibold text-dark-text">
-                              <User className="w-3.5 h-3.5 text-dark-dim shrink-0" />
+                            <div className="flex items-center gap-1.5 font-semibold text-[#202033]">
+                              <User className="w-3.5 h-3.5 text-[#9E9EB3] shrink-0" />
                               <div className="flex flex-col min-w-0">
-                                <span className="truncate max-w-[180px] text-xs font-semibold text-[#F1F5F9]">
+                                <span className="truncate max-w-[180px] text-xs font-semibold text-[#202033]">
                                   {actor.email}
                                 </span>
                                 {actor.role && (
-                                  <span className="text-[10px] text-[#A1AEC2] font-mono">
+                                  <span className="text-[10px] text-[#68677D] font-mono">
                                     {String(actor.role).replace('_', ' ')}
                                   </span>
                                 )}
@@ -281,16 +250,16 @@ export default function AdminAuditPage() {
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-4 text-dark-muted font-mono text-[11px]">
+                          <td className="py-3.5 px-4 text-[#68677D] font-mono text-[11px]">
                             {entityStr}
                             {entityIdStr && (
-                              <span className="text-dark-dim block text-[10px] truncate max-w-[120px]">
+                              <span className="text-[#9E9EB3] block text-[10px] truncate max-w-[120px]">
                                 {entityIdStr}
                               </span>
                             )}
                           </td>
 
-                          <td className="py-3.5 px-5 text-dark-muted max-w-xs truncate" title={formattedMeta}>
+                          <td className="py-3.5 px-5 text-[#68677D] max-w-xs truncate" title={formattedMeta}>
                             {formattedMeta}
                           </td>
                         </tr>
@@ -303,26 +272,26 @@ export default function AdminAuditPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3.5 border-t border-dark-border bg-dark-input/40">
-                <span className="text-xs text-dark-dim">
-                  Showing <span className="font-semibold text-dark-text">{logs.length}</span> of{' '}
-                  <span className="font-semibold text-dark-text">{total}</span> audit records
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-[#E4E3EF] bg-[#F8F8FC]">
+                <span className="text-xs text-[#68677D]">
+                  Showing <span className="font-semibold text-[#202033]">{logs.length}</span> of{' '}
+                  <span className="font-semibold text-[#202033]">{total}</span> audit records
                 </span>
 
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     disabled={page <= 1 || loading}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" /> Previous
                   </Button>
-                  <span className="text-xs font-semibold px-2 text-dark-text">
+                  <span className="text-xs font-semibold px-2 text-[#202033]">
                     {page} / {totalPages}
                   </span>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     disabled={page >= totalPages || loading}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

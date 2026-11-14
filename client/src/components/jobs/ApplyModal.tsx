@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 import { useAuth } from '../../providers/AuthContext';
 import { useToast } from '../../providers/ToastContext';
-import { FileText, CheckCircle2, Building2, MapPin } from 'lucide-react';
+import { CheckCircle2, Building2, MapPin } from 'lucide-react';
 
 interface ApplyModalProps {
   isOpen: boolean;
@@ -66,13 +66,13 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Job Summary Pill */}
-        <div className="p-3.5 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-xs text-[#F1F5F9]">
-          <div className="flex items-center gap-1.5 font-bold text-[#F1F5F9]">
-            <Building2 className="w-4 h-4 text-indigo-400" />
+        <div className="p-3.5 bg-[#EAE7FF] rounded-2xl border border-[#8B7CF6]/30 text-xs text-[#202033] shadow-sm">
+          <div className="flex items-center gap-1.5 font-bold text-[#202033]">
+            <Building2 className="w-4 h-4 text-[#6C5CE7]" />
             <span>{job.company?.name || 'HireFlow Partner'}</span>
           </div>
-          <div className="flex items-center gap-2 text-[#A1AEC2] mt-1">
-            <MapPin className="w-3.5 h-3.5 text-[#64748B]" />
+          <div className="flex items-center gap-2 text-[#68677D] mt-1">
+            <MapPin className="w-3.5 h-3.5 text-[#9E9EB3]" />
             <span>{job.location}</span>
             <span>•</span>
             <span>{job.employmentType?.replace('_', ' ')}</span>
@@ -80,41 +80,42 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+          <label className="block text-xs font-semibold text-[#202033] mb-1.5">
             Candidate Profile
           </label>
-          <div className="text-xs p-3.5 bg-[#101726] rounded-2xl border border-[#2B3950] flex items-center justify-between">
+          <div className="text-xs p-3.5 bg-[#F8F8FC] rounded-2xl border border-[#E4E3EF] shadow-sm flex items-center justify-between">
             <div>
-              <div className="font-bold text-[#F1F5F9]">
+              <div className="font-bold text-[#202033]">
                 {user?.applicantProfile?.fullName || user?.email}
               </div>
-              <div className="text-[#64748B] text-[11px] mt-0.5 font-mono">{user?.email}</div>
+              <div className="text-[#68677D] text-[11px] mt-0.5 font-mono">{user?.email}</div>
             </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-300 bg-emerald-500/15 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-[#16A878] bg-[#16A878]/15 px-2.5 py-1 rounded-xl border border-[#16A878]/30">
               <CheckCircle2 className="w-3.5 h-3.5" /> Verified
             </span>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
-            Cover Letter / Application Note (Optional)
+          <label className="block text-xs font-semibold text-[#202033] mb-1.5">
+            Cover Letter / Motivation Statement
           </label>
           <textarea
             rows={4}
             value={coverLetter}
             onChange={(e) => setCoverLetter(e.target.value)}
-            placeholder="Share why you are an ideal fit for this role, relevant achievements, or availability..."
-            className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all leading-relaxed"
+            placeholder="Share why you're a great fit for this position, relevant portfolio projects, or availability..."
+            className="skeuo-input w-full p-3.5 text-xs leading-relaxed"
           />
         </div>
 
-        <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+        <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#E4E3EF]">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onClose}
+            disabled={loading}
           >
             Cancel
           </Button>
@@ -123,9 +124,8 @@ export const ApplyModal: React.FC<ApplyModalProps> = ({
             variant="primary"
             size="sm"
             loading={loading}
-            disabled={loading}
           >
-            Confirm & Apply
+            Submit Application
           </Button>
         </div>
       </form>

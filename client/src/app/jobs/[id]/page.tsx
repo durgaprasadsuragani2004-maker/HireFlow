@@ -14,18 +14,17 @@ import {
   MapPin,
   Clock,
   DollarSign,
-  Briefcase,
   Layers,
   ArrowLeft,
   CheckCircle2,
-  Calendar,
   Home,
   Edit,
-  XCircle,
   Building2,
   Globe,
   Award,
+  Trash2,
 } from 'lucide-react';
+import { DeleteJobModal } from '../../../components/jobs/DeleteJobModal';
 
 export default function JobDetailPage() {
   const params = useParams();
@@ -36,6 +35,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const fetchJob = async () => {
     setLoading(true);
@@ -77,9 +77,9 @@ export default function JobDetailPage() {
   if (!job) {
     return (
       <div className="max-w-xl mx-auto text-center py-16">
-        <h2 className="text-xl font-bold text-[#F1F5F9]">Job Not Found</h2>
-        <p className="text-xs text-[#A1AEC2] mt-1">This job may have been archived or unpublished.</p>
-        <Link href="/jobs" className="mt-4 inline-block text-xs font-bold text-indigo-400 underline">
+        <h2 className="text-xl font-bold text-[#202033]">Job Not Found</h2>
+        <p className="text-xs text-[#68677D] mt-1">This job may have been archived or unpublished.</p>
+        <Link href="/jobs" className="mt-4 inline-block text-xs font-bold text-[#6C5CE7] underline">
           Back to Career Board
         </Link>
       </div>
@@ -98,27 +98,27 @@ export default function JobDetailPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 py-2">
       {/* Breadcrumb Navigation */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#A1AEC2]">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-[#68677D]">
         <Link
           href="/"
-          className="flex items-center gap-1 hover:text-indigo-400 transition-colors"
+          className="flex items-center gap-1 hover:text-[#6C5CE7] transition-colors"
         >
           <Home className="w-3.5 h-3.5" />
           <span>Home</span>
         </Link>
-        <span className="text-[#64748B]">/</span>
-        <Link href="/jobs" className="hover:text-indigo-400 transition-colors">
+        <span className="text-[#E4E3EF]">/</span>
+        <Link href="/jobs" className="hover:text-[#6C5CE7] transition-colors">
           Job Board
         </Link>
-        <span className="text-[#64748B]">/</span>
-        <span className="text-[#F1F5F9] font-semibold truncate max-w-xs">{job.title}</span>
+        <span className="text-[#E4E3EF]">/</span>
+        <span className="text-[#202033] font-semibold truncate max-w-xs">{job.title}</span>
       </nav>
 
       {/* Top Bar with Back and Admin Actions */}
       <div className="flex items-center justify-between gap-4">
         <Link
           href="/jobs"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A1AEC2] hover:text-[#F1F5F9] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#68677D] hover:text-[#202033] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to All Openings</span>
@@ -128,18 +128,27 @@ export default function JobDetailPage() {
           <div className="flex items-center gap-2">
             <Link
               href={`/jobs/${job.id}/edit`}
-              className="px-3.5 py-1.5 text-xs font-semibold text-[#F1F5F9] bg-[#1C2940] hover:bg-[#28374E] rounded-xl border border-[#2B3950] transition-colors flex items-center gap-1.5"
+              className="neu-btn-secondary px-3.5 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5"
             >
-              <Edit className="w-3.5 h-3.5" />
+              <Edit className="w-3.5 h-3.5 text-[#6C5CE7]" />
               <span>Edit Details</span>
             </Link>
             <Link
               href={`/applications/kanban/${job.id}`}
-              className="px-3.5 py-1.5 text-xs font-bold text-indigo-300 bg-indigo-500/15 hover:bg-indigo-600 hover:text-white rounded-xl border border-indigo-500/30 transition-all flex items-center gap-1.5"
+              className="neu-btn-secondary px-3.5 py-1.5 text-xs font-bold text-[#6C5CE7] hover:text-[#5B4BD8] rounded-xl flex items-center gap-1.5"
             >
-              <Layers className="w-3.5 h-3.5" />
+              <Layers className="w-3.5 h-3.5 text-[#6C5CE7]" />
               <span>Kanban Board</span>
             </Link>
+            <button
+              type="button"
+              onClick={() => setDeleteModalOpen(true)}
+              className="neu-btn-secondary px-3.5 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 text-rose-600 hover:text-rose-700 cursor-pointer"
+              title="Delete or Archive Job"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+              <span>Delete</span>
+            </button>
           </div>
         )}
       </div>
@@ -148,9 +157,9 @@ export default function JobDetailPage() {
         {/* Main Job Content (Left 2 cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Header Card */}
-          <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 sm:p-8 shadow-card">
+          <div className="skeuo-card p-6 sm:p-8 border border-[#E4E3EF] shadow-card">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+              <span className="text-xs font-bold text-[#6C5CE7] uppercase tracking-wider">
                 {job.company?.name || 'HireFlow Partner'}
               </span>
               <div className="flex items-center gap-2">
@@ -165,28 +174,28 @@ export default function JobDetailPage() {
               </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F1F5F9] tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#202033] tracking-tight">
               {job.title}
             </h1>
 
             {/* Quick Meta Pills */}
-            <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-[#2B3950] text-xs text-[#A1AEC2]">
-              <span className="flex items-center gap-1.5 bg-[#101726] border border-[#2B3950] px-3 py-1.5 rounded-xl font-medium text-[#F1F5F9]">
-                <MapPin className="w-3.5 h-3.5 text-[#64748B]" />
+            <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-[#E4E3EF] text-xs text-[#68677D]">
+              <span className="flex items-center gap-1.5 bg-[#F0F1F8] border border-[#E4E3EF] px-3 py-1.5 rounded-xl font-medium text-[#202033]">
+                <MapPin className="w-3.5 h-3.5 text-[#9E9EB3]" />
                 <span>{job.location}</span>
               </span>
-              <span className="flex items-center gap-1.5 bg-[#101726] border border-[#2B3950] px-3 py-1.5 rounded-xl font-medium text-[#F1F5F9]">
-                <Clock className="w-3.5 h-3.5 text-[#64748B]" />
+              <span className="flex items-center gap-1.5 bg-[#F0F1F8] border border-[#E4E3EF] px-3 py-1.5 rounded-xl font-medium text-[#202033]">
+                <Clock className="w-3.5 h-3.5 text-[#9E9EB3]" />
                 <span>{job.employmentType?.replace('_', ' ')}</span>
               </span>
               {job.experienceLevel && (
-                <span className="flex items-center gap-1.5 bg-[#101726] border border-[#2B3950] px-3 py-1.5 rounded-xl font-medium text-[#F1F5F9]">
-                  <Award className="w-3.5 h-3.5 text-[#64748B]" />
+                <span className="flex items-center gap-1.5 bg-[#F0F1F8] border border-[#E4E3EF] px-3 py-1.5 rounded-xl font-medium text-[#202033]">
+                  <Award className="w-3.5 h-3.5 text-[#9E9EB3]" />
                   <span>{job.experienceLevel?.replace('_', ' ')}</span>
                 </span>
               )}
               {(job.salaryMin || job.salaryMax) && (
-                <span className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-xl font-bold">
+                <span className="flex items-center gap-1.5 bg-[#16A878]/12 border border-[#16A878]/25 text-[#16A878] px-3 py-1.5 rounded-xl font-bold">
                   <DollarSign className="w-3.5 h-3.5 -mr-1" />
                   <span>{formatCurrency(job.salaryMin)} - {formatCurrency(job.salaryMax)}</span>
                 </span>
@@ -195,40 +204,40 @@ export default function JobDetailPage() {
           </div>
 
           {/* Role Overview */}
-          <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
+          <div className="skeuo-card p-6 sm:p-8 border border-[#E4E3EF] shadow-card space-y-6">
             <div>
-              <h2 className="text-base font-bold text-[#F1F5F9] mb-3">About the Role</h2>
-              <p className="text-sm text-[#A1AEC2] leading-relaxed whitespace-pre-line">
+              <h2 className="text-base font-bold text-[#202033] mb-3">About the Role</h2>
+              <p className="text-sm text-[#68677D] leading-relaxed whitespace-pre-line">
                 {job.description}
               </p>
             </div>
 
             {job.responsibilities && (
-              <div className="pt-4 border-t border-[#2B3950]">
-                <h3 className="text-sm font-bold text-[#F1F5F9] mb-3">Core Responsibilities</h3>
-                <div className="text-sm text-[#A1AEC2] leading-relaxed whitespace-pre-line">
+              <div className="pt-4 border-t border-[#E4E3EF]">
+                <h3 className="text-sm font-bold text-[#202033] mb-3">Core Responsibilities</h3>
+                <div className="text-sm text-[#68677D] leading-relaxed whitespace-pre-line">
                   {job.responsibilities}
                 </div>
               </div>
             )}
 
             {job.requirements && (
-              <div className="pt-4 border-t border-[#2B3950]">
-                <h3 className="text-sm font-bold text-[#F1F5F9] mb-3">Qualifications & Requirements</h3>
-                <div className="text-sm text-[#A1AEC2] leading-relaxed whitespace-pre-line">
+              <div className="pt-4 border-t border-[#E4E3EF]">
+                <h3 className="text-sm font-bold text-[#202033] mb-3">Qualifications & Requirements</h3>
+                <div className="text-sm text-[#68677D] leading-relaxed whitespace-pre-line">
                   {job.requirements}
                 </div>
               </div>
             )}
 
             {job.skills && (
-              <div className="pt-4 border-t border-[#2B3950]">
-                <h3 className="text-sm font-bold text-[#F1F5F9] mb-3">Required Technical Competencies</h3>
+              <div className="pt-4 border-t border-[#E4E3EF]">
+                <h3 className="text-sm font-bold text-[#202033] mb-3">Required Technical Competencies</h3>
                 <div className="flex flex-wrap gap-2">
                   {job.skills.split(',').map((skill: string, idx: number) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 rounded-xl text-xs font-semibold bg-[#1E293B] text-[#A1AEC2] border border-[#2B3950]"
+                      className="px-3 py-1 rounded-xl text-xs font-semibold bg-[#F0F1F8] text-[#68677D] border border-[#E4E3EF]"
                     >
                       {skill.trim()}
                     </span>
@@ -242,27 +251,27 @@ export default function JobDetailPage() {
         {/* Sidebar / Apply Action (Right 1 col) */}
         <div className="space-y-6 lg:sticky lg:top-20">
           {/* Action Card */}
-          <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 shadow-card space-y-4">
-            <h3 className="font-bold text-sm text-[#F1F5F9]">Application Status</h3>
+          <div className="skeuo-card p-6 border border-[#E4E3EF] shadow-card space-y-4">
+            <h3 className="font-bold text-sm text-[#202033]">Application Status</h3>
 
             {job.hasApplied ? (
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-300 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-sm text-emerald-300">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <div className="p-4 bg-[#16A878]/10 border border-[#16A878]/25 rounded-2xl text-[#16A878] space-y-2">
+                <div className="flex items-center gap-2 font-bold text-sm text-[#16A878]">
+                  <CheckCircle2 className="w-4 h-4 text-[#16A878]" />
                   <span>Application Submitted</span>
                 </div>
-                <div className="text-xs text-[#A1AEC2]">
+                <div className="text-xs text-[#68677D]">
                   Status:{' '}
-                  <span className="font-bold text-[#F1F5F9]">
+                  <span className="font-bold text-[#202033]">
                     {job.applicationInfo?.currentStage || 'APPLIED'}
                   </span>
                 </div>
-                <div className="text-[11px] text-[#64748B]">
+                <div className="text-[11px] text-[#9E9EB3]">
                   Applied: {formatDate(job.applicationInfo?.createdAt)}
                 </div>
               </div>
             ) : !jobStatus.isOpen ? (
-              <div className="p-4 bg-[#101726] border border-[#2B3950] rounded-2xl text-[#A1AEC2] text-xs">
+              <div className="p-4 bg-[#F8F8FC] border border-[#E4E3EF] rounded-2xl text-[#68677D] text-xs">
                 {jobStatus.isExpired
                   ? 'The application deadline for this position has passed.'
                   : 'This position is closed and no longer accepting new submissions.'}
@@ -271,7 +280,7 @@ export default function JobDetailPage() {
               <Button
                 variant="primary"
                 size="lg"
-                className="w-full text-xs font-bold"
+                className="w-full text-xs font-bold cursor-pointer"
                 onClick={() => setApplyModalOpen(true)}
               >
                 Apply for this Position
@@ -281,34 +290,34 @@ export default function JobDetailPage() {
                 <Button
                   variant="primary"
                   size="md"
-                  className="w-full text-xs font-bold"
+                  className="w-full text-xs font-bold cursor-pointer"
                   onClick={() => router.push('/login')}
                 >
                   Sign in to Apply
                 </Button>
-                <p className="text-[11px] text-[#A1AEC2] text-center">
+                <p className="text-[11px] text-[#68677D] text-center">
                   Create an account or sign in as a candidate to apply.
                 </p>
               </div>
             ) : (
-              <div className="p-3 bg-[#101726] border border-[#2B3950] rounded-2xl text-[11px] text-[#A1AEC2]">
-                Logged in as <strong className="text-[#F1F5F9]">{user.role.replace('_', ' ')}</strong>. Job applications are open to candidate accounts.
+              <div className="p-3 bg-[#F8F8FC] border border-[#E4E3EF] rounded-2xl text-[11px] text-[#68677D]">
+                Logged in as <strong className="text-[#202033]">{user.role.replace('_', ' ')}</strong>. Job applications are open to candidate accounts.
               </div>
             )}
 
-            <div className="pt-3 border-t border-[#2B3950] space-y-2 text-xs text-[#A1AEC2]">
+            <div className="pt-3 border-t border-[#E4E3EF] space-y-2 text-xs text-[#68677D]">
               <div className="flex justify-between">
-                <span className="text-[#64748B]">Total Applicants:</span>
-                <span className="font-bold text-[#F1F5F9]">{job._count?.applications || 0}</span>
+                <span className="text-[#9E9EB3]">Total Applicants:</span>
+                <span className="font-bold text-[#202033]">{job._count?.applications || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#64748B]">Posted On:</span>
-                <span className="font-semibold text-[#F1F5F9]">{formatDate(job.createdAt)}</span>
+                <span className="text-[#9E9EB3]">Posted On:</span>
+                <span className="font-semibold text-[#202033]">{formatDate(job.createdAt)}</span>
               </div>
               {job.deadline && (
                 <div className="flex justify-between">
-                  <span className="text-[#64748B]">Deadline:</span>
-                  <span className="font-semibold text-[#F1F5F9]">{formatDate(job.deadline)}</span>
+                  <span className="text-[#9E9EB3]">Deadline:</span>
+                  <span className="font-semibold text-[#202033]">{formatDate(job.deadline)}</span>
                 </div>
               )}
             </div>
@@ -316,17 +325,17 @@ export default function JobDetailPage() {
 
           {/* Assigned HR / Recruiter Lead */}
           {job.recruiter && (
-            <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 shadow-card space-y-3">
-              <h4 className="font-bold text-xs text-[#A1AEC2] uppercase tracking-wider">Assigned HR / Recruiter Lead</h4>
+            <div className="skeuo-card p-6 border border-[#E4E3EF] shadow-card space-y-3">
+              <h4 className="font-bold text-xs text-[#68677D] uppercase tracking-wider">Assigned HR / Recruiter Lead</h4>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center font-bold text-sm shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-[#EAE7FF] text-[#6C5CE7] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
                   {job.recruiter.user?.email?.[0]?.toUpperCase() || 'R'}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-[#F1F5F9] truncate">
+                  <div className="text-xs font-semibold text-[#202033] truncate">
                     {job.recruiter.user?.email}
                   </div>
-                  <div className="text-[11px] text-[#A1AEC2]">
+                  <div className="text-[11px] text-[#68677D]">
                     {job.recruiter.title || 'Talent Acquisition'}{job.recruiter.department ? ` • ${job.recruiter.department}` : ''}
                   </div>
                 </div>
@@ -336,19 +345,19 @@ export default function JobDetailPage() {
 
           {/* Company Info Box */}
           {job.company && (
-            <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 shadow-card space-y-3">
+            <div className="skeuo-card p-6 border border-[#E4E3EF] shadow-card space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-base shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-[#EAE7FF] text-[#6C5CE7] flex items-center justify-center font-bold text-base shrink-0 shadow-sm">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-[#F1F5F9]">{job.company.name}</h4>
-                  <p className="text-[11px] text-[#A1AEC2]">{job.company.industry || 'Technology Partner'}</p>
+                  <h4 className="font-bold text-sm text-[#202033]">{job.company.name}</h4>
+                  <p className="text-[11px] text-[#68677D]">{job.company.industry || 'Technology Partner'}</p>
                 </div>
               </div>
 
               {job.company.description && (
-                <p className="text-xs text-[#A1AEC2] leading-relaxed pt-2 border-t border-[#2B3950]">
+                <p className="text-xs text-[#68677D] leading-relaxed pt-2 border-t border-[#E4E3EF]">
                   {job.company.description}
                 </p>
               )}
@@ -358,7 +367,7 @@ export default function JobDetailPage() {
                   href={job.company.website}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 pt-1"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6C5CE7] hover:text-[#5B4BD8] pt-1"
                 >
                   <Globe className="w-3.5 h-3.5" />
                   <span>Visit company website</span>
@@ -377,6 +386,18 @@ export default function JobDetailPage() {
           job={job}
           onSuccess={() => {
             fetchJob();
+          }}
+        />
+      )}
+
+      {/* Delete Job Modal */}
+      {deleteModalOpen && (
+        <DeleteJobModal
+          job={job}
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onSuccess={() => {
+            router.push('/jobs');
           }}
         />
       )}

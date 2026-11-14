@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 import { Loader2 } from 'lucide-react';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
@@ -18,19 +18,19 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0B1120] disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]';
+    'inline-flex items-center justify-center font-semibold rounded-xl select-none transition-all duration-150 focus-ring disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none cursor-pointer';
 
   const variants = {
     primary:
-      'bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white shadow-sm hover:shadow-glow-primary focus:ring-indigo-500/50',
+      'neu-btn-primary',
     secondary:
-      'bg-[#1E293B] hover:bg-[#28374E] active:bg-[#1A2333] text-[#F1F5F9] border border-[#2B3950] hover:border-[#3D4F6F] focus:ring-indigo-500/40',
+      'neu-btn-secondary',
     outline:
-      'border border-[#2B3950] hover:bg-[#1C2940] hover:border-indigo-500/50 text-[#F1F5F9] focus:ring-indigo-500/40',
+      'bg-white text-[#202033] border border-[#E4E3EF] shadow-neu-raised hover:border-[#8B7CF6] hover:text-[#6C5CE7] hover:bg-[#F8F8FC] active:shadow-neu-pressed active:translate-y-[1px]',
     danger:
-      'bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white shadow-sm focus:ring-rose-500/50',
+      'neu-btn-danger',
     ghost:
-      'text-[#A1AEC2] hover:text-[#F1F5F9] hover:bg-[#1C2940] focus:ring-indigo-500/40',
+      'text-[#68677D] hover:text-[#202033] hover:bg-[#F0F1F8] active:bg-[#EAE7FF] active:scale-[0.98]',
   };
 
   const sizes = {

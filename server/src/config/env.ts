@@ -1,7 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
+// 1. Load server-specific .env first
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// 2. Load root .env.local and .env if present (e.g. Neon CLI pulls)
+dotenv.config({ path: path.resolve(__dirname, '../../../.env.local') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const resolvePort = (): number => {
   const portStr = process.env.PORT;
@@ -40,12 +44,24 @@ const resolveServerUrl = (): string => {
   return `http://localhost:${resolvePort()}`;
 };
 
+const resolveDatabaseUrl = (): string => {
+  const url = process.env.DATABASE_URL?.trim();
+  if (!url && process.env.NODE_ENV !== 'test') {
+    throw new Error(
+      '[HireFlow Configuration Error] DATABASE_URL is missing. ' +
+      'Please configure DATABASE_URL with your Neon PostgreSQL connection string.'
+    );
+  }
+  return url || '';
+};
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: resolvePort(),
   HOST: process.env.HOST || '0.0.0.0',
-  DATABASE_URL: process.env.DATABASE_URL || 'file:./prisma/dev.db',
-  JWT_SECRET: process.env.JWT_SECRET || 'super-secret-hireflow-jwt-access-key-2026-production-grade',
+  DATABASE_URL: resolveDatabaseUrl(),
+  DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || process.env.DATABASE_URL || '',
+  JWT_SECRET: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super-secret-hireflow-jwt-access-key-2026-production-grade',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'super-secret-hireflow-jwt-refresh-key-2026-production-grade',
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '30d',

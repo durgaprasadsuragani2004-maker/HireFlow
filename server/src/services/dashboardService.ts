@@ -99,7 +99,20 @@ export class DashboardService {
   }
 
   async getCompanyDashboard(companyUser: AuthUser) {
-    const companyId = companyUser.companyId;
+    let companyId = companyUser.companyId || companyUser.company?.id;
+    if (!companyId) {
+      const matched = await prisma.company.findFirst({
+        where: { contactEmail: companyUser.email },
+      });
+      if (matched) {
+        companyId = matched.id;
+        await prisma.user.update({
+          where: { id: companyUser.id },
+          data: { companyId: matched.id },
+        }).catch(() => {});
+      }
+    }
+
     if (!companyId) {
       throw new AppError('No organization associated with this company account', 403);
     }
@@ -302,7 +315,19 @@ export class DashboardService {
   }
 
   async getRecruiterDashboard(recruiterUser: AuthUser) {
-    const companyId = recruiterUser.recruiterProfile?.companyId;
+    let companyId = recruiterUser.recruiterProfile?.companyId || recruiterUser.companyId;
+    if (!companyId) {
+      const matched = await prisma.company.findFirst({
+        where: { contactEmail: recruiterUser.email },
+      });
+      if (matched) {
+        companyId = matched.id;
+      }
+    }
+
+    if (!companyId) {
+      throw new AppError('No organization associated with this recruiter account', 403);
+    }
 
     const [
       activeJobs,
@@ -391,6 +416,23 @@ export class DashboardService {
       take: 5,
     });
 
+    // Recent candidate applications for this recruiter's company
+    const recentApplications = await prisma.application.findMany({
+      where: { job: { companyId } },
+      include: {
+        applicant: {
+          select: {
+            id: true,
+            fullName: true,
+            user: { select: { email: true } },
+          },
+        },
+        job: { select: { id: true, title: true } },
+      },
+      orderBy: { appliedAt: 'desc' },
+      take: 8,
+    });
+
     return {
       metrics: {
         activeJobs,
@@ -411,6 +453,15 @@ export class DashboardService {
         applicationsCount: j._count.applications,
       })),
       upcomingInterviews,
+      recentApplications: recentApplications.map((app) => ({
+        id: app.id,
+        candidateName: app.applicant.fullName,
+        candidateEmail: app.applicant.user.email,
+        jobId: app.job.id,
+        jobTitle: app.job.title,
+        stage: app.currentStage,
+        appliedAt: app.appliedAt,
+      })),
     };
   }
 

@@ -34,17 +34,23 @@ export class CandidateService {
       throw new AppError('Forbidden: Cannot view other candidates’ profiles', 403);
     }
 
-    // RBAC: Recruiter can only view candidate if they applied to their company
-    if (currentUser.role === ROLES.RECRUITER) {
-      const myCompanyId = currentUser.recruiterProfile?.companyId;
+    // RBAC: Recruiter / Company can only view candidate if they applied to their company
+    const userCompanyId =
+      currentUser.role === ROLES.COMPANY
+        ? currentUser.companyId
+        : currentUser.role === ROLES.RECRUITER
+        ? currentUser.recruiterProfile?.companyId || currentUser.companyId
+        : null;
+
+    if (userCompanyId) {
       const hasAppliedToMyCompany = profile.applications.some(
-        (app) => app.job.companyId === myCompanyId
+        (app) => app.job.companyId === userCompanyId
       );
       if (!hasAppliedToMyCompany) {
         throw new AppError('Forbidden: Cannot access candidates who have not applied to your company', 403);
       }
       profile.applications = profile.applications.filter(
-        (app) => app.job.companyId === myCompanyId
+        (app) => app.job.companyId === userCompanyId
       );
     }
 
@@ -77,10 +83,16 @@ export class CandidateService {
       throw new AppError('Forbidden: Cannot download another candidate’s resume', 403);
     }
 
-    if (currentUser.role === ROLES.RECRUITER) {
-      const myCompanyId = currentUser.recruiterProfile?.companyId;
+    const userCompanyId =
+      currentUser.role === ROLES.COMPANY
+        ? currentUser.companyId
+        : currentUser.role === ROLES.RECRUITER
+        ? currentUser.recruiterProfile?.companyId || currentUser.companyId
+        : null;
+
+    if (userCompanyId) {
       const hasAppliedToCompany = applicant.applications.some(
-        (app) => app.job.companyId === myCompanyId
+        (app) => app.job.companyId === userCompanyId
       );
       if (!hasAppliedToCompany) {
         throw new AppError('Forbidden: Cannot download resume for a candidate outside your company applications', 403);
@@ -206,11 +218,25 @@ export class CandidateService {
 
     const where: any = {};
 
-    if (params.currentUser.role === ROLES.RECRUITER) {
+    const userCompanyId =
+      params.currentUser.role === ROLES.COMPANY
+        ? params.currentUser.companyId || params.currentUser.company?.id
+        : params.currentUser.role === ROLES.RECRUITER
+        ? params.currentUser.recruiterProfile?.companyId || params.currentUser.companyId
+        : null;
+
+    const isCompanyOrRecruiter =
+      params.currentUser.role === ROLES.COMPANY || params.currentUser.role === ROLES.RECRUITER;
+
+    if (isCompanyOrRecruiter && !userCompanyId) {
+      return { candidates: [], total: 0, page, limit };
+    }
+
+    if (userCompanyId) {
       where.applications = {
         some: {
           job: {
-            companyId: params.currentUser.recruiterProfile?.companyId,
+            companyId: userCompanyId,
           },
           ...(params.jobId ? { jobId: params.jobId } : {}),
           ...(params.stage ? { currentStage: params.stage } : {}),

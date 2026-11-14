@@ -156,7 +156,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
         <DragOverlay>
           {activeCard ? (
-            <div className="w-72 sm:w-80 shadow-dropdown rotate-1 scale-[1.02] opacity-95">
+            <div className="w-72 sm:w-80 shadow-[0_20px_45px_rgba(0,0,0,0.85)] ring-1 ring-indigo-500/50 rotate-1 scale-[1.03] opacity-95 transition-transform pointer-events-none">
               <KanbanCard
                 application={activeCard}
                 onViewDetails={() => {}}

@@ -3,7 +3,7 @@ import { prisma } from '../config/database';
 import { verifyAccessToken } from '../utils/jwt';
 import { sendError } from '../utils/response';
 import { RequestWithUser } from '../types';
-import { RoleType, USER_STATUS } from '../config/constants';
+import { RoleType, USER_STATUS, ROLES } from '../config/constants';
 
 export const authenticate = async (
   req: RequestWithUser,
@@ -49,9 +49,27 @@ export const authenticate = async (
       return;
     }
 
-    if (user.status === USER_STATUS.SUSPENDED) {
-      sendError(res, 'Your account has been suspended. Please contact administrator.', 403);
+    if (user.status !== USER_STATUS.ACTIVE) {
+      sendError(res, 'Your account has been suspended or deactivated. Please contact administrator.', 403);
       return;
+    }
+
+    // Resolve company robustly
+    let resolvedCompanyId = user.companyId || user.recruiterProfile?.companyId || user.company?.id || null;
+    let resolvedCompany = user.company || user.recruiterProfile?.company || null;
+
+    if (!resolvedCompanyId && user.role === ROLES.COMPANY) {
+      const matchedCompany = await prisma.company.findFirst({
+        where: { contactEmail: user.email },
+      });
+      if (matchedCompany) {
+        resolvedCompanyId = matchedCompany.id;
+        resolvedCompany = matchedCompany;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { companyId: matchedCompany.id },
+        }).catch(() => {});
+      }
     }
 
     req.user = {
@@ -59,8 +77,8 @@ export const authenticate = async (
       email: user.email,
       role: user.role as RoleType,
       status: user.status as any,
-      companyId: user.companyId || user.recruiterProfile?.companyId || null,
-      company: user.company || user.recruiterProfile?.company || null,
+      companyId: resolvedCompanyId,
+      company: resolvedCompany,
       recruiterProfile: user.recruiterProfile
         ? {
             id: user.recruiterProfile.id,
@@ -135,13 +153,26 @@ export const optionalAuth = async (
         include: { recruiterProfile: { include: { company: true } }, applicantProfile: true, company: true },
       });
       if (user && user.status !== USER_STATUS.SUSPENDED) {
+        let resolvedCompanyId = user.companyId || user.recruiterProfile?.companyId || user.company?.id || null;
+        let resolvedCompany = user.company || user.recruiterProfile?.company || null;
+
+        if (!resolvedCompanyId && user.role === ROLES.COMPANY) {
+          const matchedCompany = await prisma.company.findFirst({
+            where: { contactEmail: user.email },
+          });
+          if (matchedCompany) {
+            resolvedCompanyId = matchedCompany.id;
+            resolvedCompany = matchedCompany;
+          }
+        }
+
         req.user = {
           id: user.id,
           email: user.email,
           role: user.role as RoleType,
           status: user.status as any,
-          companyId: user.companyId || user.recruiterProfile?.companyId || null,
-          company: user.company || user.recruiterProfile?.company || null,
+          companyId: resolvedCompanyId,
+          company: resolvedCompany,
           recruiterProfile: user.recruiterProfile
             ? {
                 id: user.recruiterProfile.id,

@@ -349,13 +349,55 @@ export class JobService {
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job) throw new AppError('Job not found', 404);
 
-    if (
-      (currentUser.role === ROLES.RECRUITER && (job.companyId !== currentUser.recruiterProfile?.companyId || job.recruiterId !== currentUser.recruiterProfile?.id)) ||
-      (currentUser.role === ROLES.COMPANY && job.companyId !== currentUser.companyId)
-    ) {
-      throw new AppError('Forbidden: Cannot delete jobs belonging to another company or recruiter', 403);
+    if (currentUser.role === ROLES.SUPER_ADMIN) {
+      // Super admin can delete any job
+    } else if (currentUser.role === ROLES.COMPANY) {
+      if (job.companyId !== currentUser.companyId) {
+        throw new AppError('Forbidden: Cannot delete jobs belonging to another company', 403);
+      }
+    } else if (currentUser.role === ROLES.RECRUITER) {
+      const myCompanyId = currentUser.recruiterProfile?.companyId || currentUser.companyId;
+      const myRecruiterId = currentUser.recruiterProfile?.id || currentUser.id;
+      if (job.companyId !== myCompanyId || job.recruiterId !== myRecruiterId) {
+        throw new AppError('Forbidden: Recruiters can only delete jobs assigned to them within their company', 403);
+      }
+    } else {
+      throw new AppError('Forbidden: Not authorized to delete jobs', 403);
     }
 
+    // Safe Archival Strategy:
+    // If the job has applicant history, soft-delete with ARCHIVED status to preserve data integrity
+    const applicationCount = await prisma.application.count({
+      where: { jobId },
+    });
+
+    if (applicationCount > 0) {
+      const archived = await prisma.job.update({
+        where: { id: jobId },
+        data: { status: JOB_STATUS.ARCHIVED },
+      });
+
+      await auditService.log({
+        actorId: currentUser.id,
+        action: AUDIT_ACTIONS.JOB_UPDATE,
+        entity: 'Job',
+        entityId: jobId,
+        metadata: {
+          title: job.title,
+          action: 'JOB_ARCHIVED_SAFE',
+          reason: 'Job has applicant history and was safely archived rather than permanently deleted',
+          applicationCount,
+        },
+      });
+
+      return {
+        message: 'Job safely archived to preserve applicant history and pipeline records',
+        archived: true,
+        job: archived,
+      };
+    }
+
+    // Zero applications: permanently hard-delete
     await prisma.job.delete({ where: { id: jobId } });
 
     await auditService.log({
@@ -366,7 +408,10 @@ export class JobService {
       metadata: { title: job.title },
     });
 
-    return { message: 'Job deleted successfully' };
+    return {
+      message: 'Job deleted successfully',
+      archived: false,
+    };
   }
 
   async getJobById(jobId: string, currentUser?: AuthUser) {
@@ -474,7 +519,19 @@ export class JobService {
         andConditions.push({ companyId: params.companyId });
       }
     } else if (params.currentUser.role === ROLES.COMPANY) {
-      const targetCompanyId = params.currentUser.companyId;
+      let targetCompanyId = params.currentUser.companyId || params.currentUser.company?.id;
+      if (!targetCompanyId) {
+        const matched = await prisma.company.findFirst({
+          where: { contactEmail: params.currentUser.email },
+        });
+        if (matched) {
+          targetCompanyId = matched.id;
+          await prisma.user.update({
+            where: { id: params.currentUser.id },
+            data: { companyId: matched.id },
+          }).catch(() => {});
+        }
+      }
       if (!targetCompanyId) {
         throw new AppError('No organization associated with this company account', 403);
       }
@@ -483,7 +540,15 @@ export class JobService {
         andConditions.push({ status: params.status });
       }
     } else if (params.currentUser.role === ROLES.RECRUITER) {
-      const recruiterCompanyId = params.currentUser.recruiterProfile?.companyId || params.currentUser.companyId;
+      let recruiterCompanyId = params.currentUser.recruiterProfile?.companyId || params.currentUser.companyId;
+      if (!recruiterCompanyId) {
+        const matched = await prisma.company.findFirst({
+          where: { contactEmail: params.currentUser.email },
+        });
+        if (matched) {
+          recruiterCompanyId = matched.id;
+        }
+      }
       if (!recruiterCompanyId) {
         throw new AppError('No organization associated with this recruiter account', 403);
       }
@@ -499,6 +564,11 @@ export class JobService {
     } else if (params.currentUser.role === ROLES.SUPER_ADMIN) {
       if (params.status) andConditions.push({ status: params.status });
       if (params.companyId) andConditions.push({ companyId: params.companyId });
+    }
+
+    // Exclude archived jobs by default unless explicitly filtered by status
+    if (!params.status) {
+      andConditions.push({ status: { not: JOB_STATUS.ARCHIVED } });
     }
 
     if (params.search) {
@@ -589,6 +659,48 @@ export class JobService {
       hasApplied: appliedJobIds.has(job.id),
       applicationInfo: applicantAppsByJobId.get(job.id) || null,
     }));
+
+    // Expired Job Ordering:
+    // (1) Active published with upcoming deadlines
+    // (2) Active published without deadlines
+    // (3) Drafts/other
+    // (4) Expired jobs at the bottom
+    // (5) Archived jobs at the bottom
+    if (!params.sortBy || params.sortBy === 'createdAt') {
+      const getTier = (j: any): number => {
+        if (j.status === JOB_STATUS.ARCHIVED) return 5;
+        const expired = isJobExpired(j.deadline);
+        if (expired) return 4;
+        if (j.status === JOB_STATUS.DRAFT) return 3;
+        if (j.status === JOB_STATUS.PUBLISHED && !j.deadline) return 2;
+        if (j.status === JOB_STATUS.PUBLISHED && j.deadline) return 1;
+        return 3;
+      };
+
+      enrichedJobs.sort((a, b) => {
+        const tierA = getTier(a);
+        const tierB = getTier(b);
+        if (tierA !== tierB) return tierA - tierB;
+
+        // Upcoming deadlines: earliest deadline first
+        if (tierA === 1) {
+          const timeA = a.deadline ? new Date(a.deadline).getTime() : 0;
+          const timeB = b.deadline ? new Date(b.deadline).getTime() : 0;
+          if (timeA !== timeB) return timeA - timeB;
+        }
+
+        // Expired deadlines: most recently expired first
+        if (tierA === 4) {
+          const timeA = a.deadline ? new Date(a.deadline).getTime() : 0;
+          const timeB = b.deadline ? new Date(b.deadline).getTime() : 0;
+          if (timeA !== timeB) return timeB - timeA;
+        }
+
+        const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return createdB - createdA;
+      });
+    }
 
     return {
       jobs: enrichedJobs,

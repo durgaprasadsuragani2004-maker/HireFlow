@@ -67,22 +67,22 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : error ? (
-        <div className="p-8 text-center bg-[#151F32] border border-[#2B3950] rounded-3xl shadow-card max-w-lg mx-auto my-12">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto mb-3 border border-rose-500/20">
+        <div className="p-8 text-center skeuo-card border border-[#E4E3EF] rounded-3xl max-w-lg mx-auto my-12">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-3 border border-rose-500/20 shadow-inner">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-[#F1F5F9]">Unable to Load Telemetry</h3>
-          <p className="text-xs text-[#A1AEC2] mt-1 max-w-sm mx-auto leading-relaxed">{error}</p>
+          <h3 className="text-base font-bold text-[#202033]">Unable to Load Telemetry</h3>
+          <p className="text-xs text-[#68677D] mt-1 max-w-sm mx-auto leading-relaxed">{error}</p>
           <Button onClick={fetchDashboardData} variant="primary" size="sm" className="mt-5">
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
           </Button>
         </div>
       ) : user?.role === 'SUPER_ADMIN' ? (
-        <AdminDashboard data={data} />
+        <AdminDashboard data={data} onRefresh={fetchDashboardData} />
       ) : user?.role === 'COMPANY' ? (
-        <CompanyDashboard data={data} />
+        <CompanyDashboard data={data} onRefresh={fetchDashboardData} />
       ) : user?.role === 'RECRUITER' ? (
-        <RecruiterDashboard data={data} />
+        <RecruiterDashboard data={data} onRefresh={fetchDashboardData} />
       ) : (
         <ApplicantDashboard data={data} />
       )}

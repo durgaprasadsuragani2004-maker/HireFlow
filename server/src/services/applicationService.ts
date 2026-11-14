@@ -231,7 +231,14 @@ export class ApplicationService {
     // Role access check
     if (
       changedByUser.role === ROLES.RECRUITER &&
-      application.job.companyId !== changedByUser.recruiterProfile?.companyId
+      application.job.companyId !== (changedByUser.recruiterProfile?.companyId || changedByUser.companyId)
+    ) {
+      throw new AppError('Forbidden: Cannot modify candidates for another company', 403);
+    }
+
+    if (
+      changedByUser.role === ROLES.COMPANY &&
+      application.job.companyId !== changedByUser.companyId
     ) {
       throw new AppError('Forbidden: Cannot modify candidates for another company', 403);
     }
@@ -319,9 +326,20 @@ export class ApplicationService {
 
     if (
       currentUser.role === ROLES.RECRUITER &&
-      job.companyId !== currentUser.recruiterProfile?.companyId
+      job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)
     ) {
       throw new AppError('Forbidden: Cannot view applicants for another company', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      job.companyId !== currentUser.companyId
+    ) {
+      throw new AppError('Forbidden: Cannot view applicants for another company', 403);
+    }
+
+    if (currentUser.role === ROLES.APPLICANT) {
+      throw new AppError('Forbidden: Applicants cannot view Kanban pipelines', 403);
     }
 
     const applications = await prisma.application.findMany({
@@ -417,7 +435,11 @@ export class ApplicationService {
         throw new AppError('Forbidden: Cannot view another applicant’s application', 403);
       }
     } else if (currentUser.role === ROLES.RECRUITER) {
-      if (application.job.companyId !== currentUser.recruiterProfile?.companyId) {
+      if (application.job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)) {
+        throw new AppError('Forbidden: Cannot view candidate for another company', 403);
+      }
+    } else if (currentUser.role === ROLES.COMPANY) {
+      if (application.job.companyId !== currentUser.companyId) {
         throw new AppError('Forbidden: Cannot view candidate for another company', 403);
       }
     }
@@ -442,7 +464,14 @@ export class ApplicationService {
 
     if (
       currentUser.role === ROLES.RECRUITER &&
-      application.job.companyId !== currentUser.recruiterProfile?.companyId
+      application.job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)
+    ) {
+      throw new AppError('Forbidden: Cannot view application history for another company', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      application.job.companyId !== currentUser.companyId
     ) {
       throw new AppError('Forbidden: Cannot view application history for another company', 403);
     }
@@ -470,7 +499,14 @@ export class ApplicationService {
 
     if (
       currentUser.role === ROLES.RECRUITER &&
-      application.job.companyId !== currentUser.recruiterProfile?.companyId
+      application.job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)
+    ) {
+      throw new AppError('Forbidden: Cannot modify candidates for another company', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      application.job.companyId !== currentUser.companyId
     ) {
       throw new AppError('Forbidden: Cannot modify candidates for another company', 403);
     }
@@ -534,9 +570,16 @@ export class ApplicationService {
 
     const where: any = {};
 
-    if (params.currentUser.role === ROLES.RECRUITER) {
+    const userCompanyId =
+      params.currentUser.role === ROLES.COMPANY
+        ? params.currentUser.companyId
+        : params.currentUser.role === ROLES.RECRUITER
+        ? params.currentUser.recruiterProfile?.companyId || params.currentUser.companyId
+        : null;
+
+    if (userCompanyId) {
       where.job = {
-        companyId: params.currentUser.recruiterProfile?.companyId,
+        companyId: userCompanyId,
       };
     }
 

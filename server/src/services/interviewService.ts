@@ -39,7 +39,14 @@ export class InterviewService {
 
     if (
       currentUser.role === ROLES.RECRUITER &&
-      application.job.companyId !== currentUser.recruiterProfile?.companyId
+      application.job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)
+    ) {
+      throw new AppError('Forbidden: Cannot schedule interviews for another company', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      application.job.companyId !== currentUser.companyId
     ) {
       throw new AppError('Forbidden: Cannot schedule interviews for another company', 403);
     }
@@ -177,10 +184,19 @@ export class InterviewService {
       where.application = {
         applicant: { userId: currentUser.id },
       };
-    } else if (currentUser.role === ROLES.RECRUITER) {
-      where.application = {
-        job: { companyId: currentUser.recruiterProfile?.companyId },
-      };
+    } else {
+      const userCompanyId =
+        currentUser.role === ROLES.COMPANY
+          ? currentUser.companyId
+          : currentUser.role === ROLES.RECRUITER
+          ? currentUser.recruiterProfile?.companyId || currentUser.companyId
+          : null;
+
+      if (userCompanyId) {
+        where.application = {
+          job: { companyId: userCompanyId },
+        };
+      }
     }
 
     if (params.search) {
@@ -191,7 +207,7 @@ export class InterviewService {
         { application: { job: { title: { contains: search } } } },
         { application: { applicant: { fullName: { contains: search } } } },
       ];
-      if (currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.RECRUITER) {
+      if (currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.RECRUITER || currentUser.role === ROLES.COMPANY) {
         searchConditions.push({
           application: { applicant: { user: { email: { contains: search } } } },
         });
@@ -276,7 +292,11 @@ export class InterviewService {
         throw new AppError('Forbidden: Cannot access this interview', 403);
       }
     } else if (currentUser.role === ROLES.RECRUITER) {
-      if (interview.application.job.companyId !== currentUser.recruiterProfile?.companyId) {
+      if (interview.application.job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)) {
+        throw new AppError('Forbidden: Cannot access interview for another company', 403);
+      }
+    } else if (currentUser.role === ROLES.COMPANY) {
+      if (interview.application.job.companyId !== currentUser.companyId) {
         throw new AppError('Forbidden: Cannot access interview for another company', 403);
       }
     }
@@ -305,7 +325,14 @@ export class InterviewService {
 
     if (
       currentUser.role === ROLES.RECRUITER &&
-      interview.application.job.companyId !== currentUser.recruiterProfile?.companyId
+      interview.application.job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)
+    ) {
+      throw new AppError('Forbidden: Cannot update interview for another company', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      interview.application.job.companyId !== currentUser.companyId
     ) {
       throw new AppError('Forbidden: Cannot update interview for another company', 403);
     }
@@ -409,7 +436,14 @@ export class InterviewService {
 
     if (
       currentUser.role === ROLES.RECRUITER &&
-      interview.application.job.companyId !== currentUser.recruiterProfile?.companyId
+      interview.application.job.companyId !== (currentUser.recruiterProfile?.companyId || currentUser.companyId)
+    ) {
+      throw new AppError('Forbidden: Cannot delete interview for another company', 403);
+    }
+
+    if (
+      currentUser.role === ROLES.COMPANY &&
+      interview.application.job.companyId !== currentUser.companyId
     ) {
       throw new AppError('Forbidden: Cannot delete interview for another company', 403);
     }

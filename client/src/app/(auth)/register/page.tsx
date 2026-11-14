@@ -5,7 +5,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../providers/AuthContext';
 import { Button } from '../../../components/ui/Button';
-import { Briefcase, User, Building, Lock, Mail, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import {
+  Briefcase,
+  User,
+  Building,
+  Lock,
+  Mail,
+  ArrowRight,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+} from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,12 +36,12 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       const registeredUser = await register({
-        email,
+        email: email.trim(),
         password,
         role,
-        fullName: role === 'APPLICANT' ? fullName : undefined,
-        companyName: role === 'RECRUITER' ? companyName : undefined,
-        title: role === 'RECRUITER' ? title : undefined,
+        fullName: role === 'APPLICANT' ? fullName.trim() : undefined,
+        companyName: role === 'RECRUITER' ? companyName.trim() : undefined,
+        title: role === 'RECRUITER' ? (title.trim() || undefined) : undefined,
       });
       if (registeredUser?.role === 'APPLICANT') {
         router.push('/jobs');
@@ -45,33 +56,36 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto py-8 sm:py-12 space-y-4">
+    <div className="max-w-md mx-auto py-8 sm:py-14 space-y-4 px-3 sm:px-0">
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A1AEC2] hover:text-[#F1F5F9] transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#68677D] hover:text-[#202033] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Home</span>
       </Link>
 
-      <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl p-6 sm:p-8 shadow-dropdown">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mx-auto mb-3 shadow-md shadow-indigo-600/30">
+      <div className="skeuo-card p-6 sm:p-8 border border-[#E4E3EF] shadow-card relative overflow-hidden">
+        {/* Soft violet ambient light */}
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#EAE7FF]/70 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 text-center mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#6C5CE7] to-[#8B7CF6] text-white flex items-center justify-center mx-auto mb-3 shadow-[0_2px_10px_rgba(108,92,231,0.35)] border border-white/30">
             <Briefcase className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-[#F1F5F9] tracking-tight">Create an Account</h1>
-          <p className="text-xs text-[#A1AEC2] mt-1">Join the HireFlow recruitment ecosystem</p>
+          <h1 className="text-2xl font-extrabold text-[#202033] tracking-tight">Create an Account</h1>
+          <p className="text-xs text-[#68677D] mt-1">Join the HireFlow recruitment ecosystem</p>
         </div>
 
-        {/* Role Toggle Tabs */}
-        <div className="flex bg-[#101726] p-1 rounded-2xl mb-6 border border-[#2B3950]">
+        {/* Role Toggle Tabs (Neumorphic sunken track with raised active pill) */}
+        <div className="relative z-10 neu-tab-track w-full p-1 rounded-2xl mb-6">
           <button
             type="button"
             onClick={() => setRole('APPLICANT')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer select-none ${
               role === 'APPLICANT'
-                ? 'bg-[#1C2940] text-indigo-300 shadow-sm border border-indigo-500/30'
-                : 'text-[#A1AEC2] hover:text-[#F1F5F9]'
+                ? 'neu-tab-item active'
+                : 'neu-tab-item'
             }`}
           >
             <User className="w-3.5 h-3.5" />
@@ -80,10 +94,10 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => setRole('RECRUITER')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer select-none ${
               role === 'RECRUITER'
-                ? 'bg-[#1C2940] text-indigo-300 shadow-sm border border-indigo-500/30'
-                : 'text-[#A1AEC2] hover:text-[#F1F5F9]'
+                ? 'neu-tab-item active'
+                : 'neu-tab-item'
             }`}
           >
             <Building className="w-3.5 h-3.5" />
@@ -91,45 +105,45 @@ export default function RegisterPage() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="relative z-10 space-y-4">
           {role === 'APPLICANT' ? (
             <div>
-              <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+              <label className="block text-xs font-semibold text-[#202033] mb-1.5">
                 Full Name
               </label>
               <div className="relative">
-                <User className="w-4 h-4 absolute left-3.5 top-3 text-[#64748B]" />
+                <User className="w-4 h-4 absolute left-3.5 top-3 text-[#9E9EB3] pointer-events-none" />
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Jane Doe"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                  className="skeuo-input w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm"
                 />
               </div>
             </div>
           ) : (
             <>
               <div>
-                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block text-xs font-semibold text-[#202033] mb-1.5">
                   Company Name
                 </label>
                 <div className="relative">
-                  <Building className="w-4 h-4 absolute left-3.5 top-3 text-[#64748B]" />
+                  <Building className="w-4 h-4 absolute left-3.5 top-3 text-[#9E9EB3] pointer-events-none" />
                   <input
                     type="text"
                     required
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="TechNova Solutions"
-                    className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                    className="skeuo-input w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block text-xs font-semibold text-[#202033] mb-1.5">
                   Professional Title
                 </label>
                 <input
@@ -137,35 +151,35 @@ export default function RegisterPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Senior Talent Lead"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs sm:text-sm"
                 />
               </div>
             </>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Work Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-3 text-[#64748B]" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-3 text-[#9E9EB3] pointer-events-none" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                className="skeuo-input w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-3 text-[#64748B]" />
+              <Lock className="w-4 h-4 absolute left-3.5 top-3 text-[#9E9EB3] pointer-events-none" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
@@ -173,15 +187,15 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 6 characters"
-                className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                className="skeuo-input w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 p-0.5 text-[#64748B] hover:text-[#F1F5F9] transition-colors"
+                className="neu-icon-btn absolute right-2.5 top-2 p-1 text-[#68677D] hover:text-[#202033] cursor-pointer"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
@@ -189,20 +203,25 @@ export default function RegisterPage() {
           <Button
             type="submit"
             variant="primary"
-            className="w-full py-2.5 text-xs font-bold mt-2 h-10"
+            className="w-full py-2.5 text-xs sm:text-sm font-bold mt-2 h-10 cursor-pointer"
             loading={isSubmitting || loading}
           >
             <span>Complete Registration</span>
-            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+            <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-[#A1AEC2]">
-          Already have an account?{' '}
-          <Link href="/login" className="font-bold text-indigo-400 hover:text-indigo-300">
+        <div className="relative z-10 mt-6 pt-5 border-t border-[#E4E3EF] flex items-center justify-between text-xs text-[#68677D]">
+          <span>Already have an account?</span>
+          <Link href="/login" className="font-bold text-[#6C5CE7] hover:text-[#5B4BD8]">
             Sign in
           </Link>
         </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-[#68677D] text-center">
+        <ShieldCheck className="w-3.5 h-3.5 text-[#6C5CE7]" />
+        <span>Enterprise-grade authentication with end-to-end encryption</span>
       </div>
     </div>
   );

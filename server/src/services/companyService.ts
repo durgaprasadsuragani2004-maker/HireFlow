@@ -12,7 +12,7 @@ export class CompanyService {
       include: {
         recruiters: {
           include: {
-            user: { select: { id: true, email: true, createdAt: true } },
+            user: { select: { id: true, email: true, createdAt: true, status: true } },
           },
         },
         _count: {
@@ -98,7 +98,7 @@ export class CompanyService {
 
     const trimmedName = data.name.trim();
 
-    // Prevent duplicate companies by unique name (SQLite case handling)
+    // Prevent duplicate companies by unique name
     const existing = await prisma.company.findFirst({
       where: {
         name: trimmedName,
@@ -301,19 +301,73 @@ export class CompanyService {
       );
     }
 
-    await prisma.company.delete({
-      where: { id: companyId },
+    // Find all linked company and recruiter user accounts to revoke access atomically
+    const linkedUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          { companyId },
+          { recruiterProfile: { companyId } },
+        ],
+      },
+      select: { id: true, email: true, role: true },
     });
+
+    await prisma.$transaction(async (tx) => {
+      // Suspend all linked accounts so credentials cannot be used to log in
+      if (linkedUsers.length > 0) {
+        await tx.user.updateMany({
+          where: {
+            id: { in: linkedUsers.map((u) => u.id) },
+          },
+          data: {
+            status: USER_STATUS.SUSPENDED,
+          },
+        });
+      }
+
+      // Delete jobs belonging to this company (having 0 applications)
+      await tx.job.deleteMany({
+        where: { companyId },
+      });
+
+      // Delete the company record
+      await tx.company.delete({
+        where: { id: companyId },
+      });
+    });
+
+    // Audit logs for user account revocations
+    for (const u of linkedUsers) {
+      await auditService.log({
+        actorId: currentUser.id,
+        action: AUDIT_ACTIONS.USER_STATUS_CHANGE,
+        entity: 'User',
+        entityId: u.id,
+        metadata: {
+          email: u.email,
+          role: u.role,
+          previousStatus: USER_STATUS.ACTIVE,
+          newStatus: USER_STATUS.SUSPENDED,
+          reason: `Access revoked due to organization "${company.name}" deletion`,
+          companyId,
+        },
+      });
+    }
 
     await auditService.log({
       actorId: currentUser.id,
       action: AUDIT_ACTIONS.COMPANY_DELETE,
       entity: 'Company',
       entityId: companyId,
-      metadata: { name: company.name },
+      metadata: {
+        name: company.name,
+        revokedAccountsCount: linkedUsers.length,
+      },
     });
 
-    return { message: `Company "${company.name}" deleted successfully` };
+    return {
+      message: `Company "${company.name}" deleted successfully and ${linkedUsers.length} linked account(s) revoked`,
+    };
   }
 
   async getCompanyAnalytics(companyId: string, currentUser: AuthUser) {

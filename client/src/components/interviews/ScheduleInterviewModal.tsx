@@ -6,7 +6,6 @@ import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 import { useAuth } from '../../providers/AuthContext';
 import { useToast } from '../../providers/ToastContext';
-import { Calendar, Clock, Video, User, Mail, FileText } from 'lucide-react';
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -72,13 +71,13 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Schedule Interview Round"
-      description={`Candidate: ${application.applicant?.fullName}`}
+      description={`Candidate: ${application.applicant?.fullName || 'Applicant'}`}
       maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Interviewer Name *
             </label>
             <input
@@ -86,11 +85,11 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               required
               value={interviewerName}
               onChange={(e) => setInterviewerName(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+              className="skeuo-input w-full px-3.5 py-2.5 text-xs"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Interviewer Email *
             </label>
             <input
@@ -98,14 +97,14 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               required
               value={interviewerEmail}
               onChange={(e) => setInterviewerEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+              className="skeuo-input w-full px-3.5 py-2.5 text-xs"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Date *
             </label>
             <input
@@ -113,11 +112,11 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              className="skeuo-input w-full px-3 py-2 text-xs"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Start Time *
             </label>
             <input
@@ -125,11 +124,11 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               required
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              className="skeuo-input w-full px-3 py-2 text-xs"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               End Time *
             </label>
             <input
@@ -137,31 +136,31 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               required
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              className="skeuo-input w-full px-3 py-2 text-xs"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Round Type
             </label>
             <select
               value={interviewType}
               onChange={(e) => setInterviewType(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+              className="skeuo-input w-full px-3.5 py-2.5 text-xs cursor-pointer"
             >
-              <option value="TECHNICAL">Technical Architecture</option>
-              <option value="HR">Initial HR Screening</option>
-              <option value="MANAGERIAL">Engineering Management</option>
-              <option value="BEHAVIORAL">Behavioral / Team Fit</option>
-              <option value="FINAL">Executive Final Round</option>
+              <option value="TECHNICAL" className="bg-white text-[#202033]">Technical Architecture</option>
+              <option value="HR" className="bg-white text-[#202033]">Initial HR Screening</option>
+              <option value="MANAGERIAL" className="bg-white text-[#202033]">Engineering Management</option>
+              <option value="BEHAVIORAL" className="bg-white text-[#202033]">Behavioral / Team Fit</option>
+              <option value="FINAL" className="bg-white text-[#202033]">Executive Final Round</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-dark-text mb-1.5">
+            <label className="block text-xs font-semibold text-[#202033] mb-1.5">
               Meeting URL
             </label>
             <input
@@ -170,13 +169,13 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
               value={meetingLink}
               onChange={(e) => setMeetingLink(e.target.value)}
               placeholder="https://meet.google.com/..."
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-dark-dim"
+              className="skeuo-input w-full px-3.5 py-2.5 text-xs"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-dark-text mb-1.5">
+          <label className="block text-xs font-semibold text-[#202033] mb-1.5">
             Interviewer Briefing Notes (Internal)
           </label>
           <textarea
@@ -184,11 +183,11 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Focus areas, coding prompts, questions to address..."
-            className="w-full p-3 text-xs rounded-xl border border-dark-border bg-dark-input text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all leading-relaxed placeholder:text-dark-dim"
+            className="skeuo-input w-full p-3 text-xs leading-relaxed"
           />
         </div>
 
-        <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-dark-border">
+        <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#E4E3EF]">
           <Button
             type="button"
             variant="outline"

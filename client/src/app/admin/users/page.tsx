@@ -374,11 +374,11 @@ export default function AdminUsersPage() {
               <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
                 <Users className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-bold text-[#F1F5F9] tracking-tight">
+              <h1 className="text-2xl font-bold text-[#202033] tracking-tight">
                 {isCompanyUser ? 'Team & Recruiter Management' : 'User Management'}
               </h1>
             </div>
-            <p className="text-xs text-[#A1AEC2] mt-1 ml-11.5">
+            <p className="text-xs text-[#68677D] mt-1 ml-11.5">
               {isCompanyUser
                 ? `Manage verified recruiters and talent partners for ${currentUser?.company?.name || 'your company'}.`
                 : 'Administer enterprise ecosystem accounts, role hierarchies, and organization access.'}
@@ -397,15 +397,15 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="bg-[#151F32] border border-[#2B3950] rounded-2xl p-4 shadow-card flex flex-col md:flex-row gap-3">
+        <div className="skeuo-card rounded-2xl p-4 flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#64748B]" />
+            <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#9E9EB3]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, email, company, or title..."
-              className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+              className="skeuo-input w-full pl-10 pr-3.5 py-2.5 text-xs placeholder:text-[#9E9EB3]"
             />
           </div>
 
@@ -417,13 +417,13 @@ export default function AdminUsersPage() {
                   setRoleFilter(e.target.value);
                   setPage(1);
                 }}
-                className="px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                className="skeuo-input px-3.5 py-2.5 text-xs font-semibold"
               >
-                <option value="">All Roles</option>
-                <option value="SUPER_ADMIN">Super Admin</option>
-                <option value="COMPANY">Company Account</option>
-                <option value="RECRUITER">Recruiter</option>
-                <option value="APPLICANT">Applicant</option>
+                <option value="" className="bg-white text-[#202033]">All Roles</option>
+                <option value="SUPER_ADMIN" className="bg-white text-[#202033]">Super Admin</option>
+                <option value="COMPANY" className="bg-white text-[#202033]">Company Account</option>
+                <option value="RECRUITER" className="bg-white text-[#202033]">Recruiter</option>
+                <option value="APPLICANT" className="bg-white text-[#202033]">Applicant</option>
               </select>
             )}
 
@@ -433,11 +433,11 @@ export default function AdminUsersPage() {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+              className="skeuo-input px-3.5 py-2.5 text-xs font-semibold"
             >
-              <option value="">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="SUSPENDED">Suspended</option>
+              <option value="" className="bg-white text-[#202033]">All Statuses</option>
+              <option value="ACTIVE" className="bg-white text-[#202033]">Active</option>
+              <option value="SUSPENDED" className="bg-white text-[#202033]">Suspended</option>
             </select>
 
             <select
@@ -446,21 +446,21 @@ export default function AdminUsersPage() {
                 setLimit(Number(e.target.value));
                 setPage(1);
               }}
-              className="px-3.5 py-2.5 text-xs font-semibold rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+              className="skeuo-input px-3.5 py-2.5 text-xs font-semibold"
             >
-              <option value={10}>10 / page</option>
-              <option value={15}>15 / page</option>
-              <option value={25}>25 / page</option>
-              <option value={50}>50 / page</option>
+              <option value={10} className="bg-white text-[#202033]">10 / page</option>
+              <option value={15} className="bg-white text-[#202033]">15 / page</option>
+              <option value={25} className="bg-white text-[#202033]">25 / page</option>
+              <option value={50} className="bg-white text-[#202033]">50 / page</option>
             </select>
           </div>
         </div>
 
         {/* Users Table */}
-        <div className="bg-[#151F32] border border-[#2B3950] rounded-3xl overflow-hidden shadow-card">
+        <div className="skeuo-card rounded-3xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#101726] border-b border-[#2B3950] text-[#A1AEC2] font-bold uppercase tracking-wider text-[11px]">
+              <thead className="skeuo-table-head">
                 <tr>
                   <th className="py-3.5 px-5">User & Email</th>
                   <th className="py-3.5 px-4">Role</th>
@@ -470,10 +470,10 @@ export default function AdminUsersPage() {
                   <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2B3950]">
+              <tbody className="divide-y divide-[#E4E3EF]">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-[#A1AEC2]">
+                    <td colSpan={6} className="py-12 text-center text-[#68677D]">
                       <div className="max-w-xs mx-auto space-y-2">
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4 mx-auto" />
@@ -482,7 +482,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ) : usersList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-[#A1AEC2]">
+                    <td colSpan={6} className="py-12 text-center text-[#68677D]">
                       No accounts found matching your filters.
                     </td>
                   </tr>
@@ -496,9 +496,9 @@ export default function AdminUsersPage() {
                       u.email.split('@')[0];
 
                     return (
-                      <tr key={u.id} className="hover:bg-[#1B273F] transition-colors">
+                      <tr key={u.id} className="skeuo-table-row">
                         <td className="py-3.5 px-5">
-                          <div className="font-bold text-[#F1F5F9]">
+                          <div className="font-bold text-[#202033]">
                             {displayName}
                             {isSelf && (
                               <span className="ml-2 text-[10px] bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 px-1.5 py-0.5 rounded-md font-bold">
@@ -506,7 +506,7 @@ export default function AdminUsersPage() {
                               </span>
                             )}
                           </div>
-                          <div className="text-[#A1AEC2] text-[11px] font-mono mt-0.5">
+                          <div className="text-[#68677D] text-[11px] font-mono mt-0.5">
                             {u.email}
                           </div>
                         </td>
@@ -527,40 +527,40 @@ export default function AdminUsersPage() {
                           </Badge>
                         </td>
 
-                        <td className="py-3.5 px-4 text-[#A1AEC2]">
+                        <td className="py-3.5 px-4 text-[#68677D]">
                           {u.role === 'COMPANY' ? (
                             <div>
-                              <span className="font-semibold text-[#F1F5F9]">
+                              <span className="font-semibold text-[#202033]">
                                 {u.company?.name || 'Assigned Organization'}
                               </span>
-                              <span className="text-[11px] text-[#64748B] block mt-0.5">
+                              <span className="text-[11px] text-[#9E9EB3] block mt-0.5">
                                 Enterprise Account
                               </span>
                             </div>
                           ) : u.role === 'RECRUITER' ? (
                             <div>
-                              <span className="font-semibold text-[#F1F5F9]">
+                              <span className="font-semibold text-[#202033]">
                                 {u.recruiterProfile?.company?.name || u.company?.name || 'Partner Company'}
                               </span>
                               {u.recruiterProfile?.title && (
-                                <span className="text-[11px] text-[#64748B] block mt-0.5">
+                                <span className="text-[11px] text-[#9E9EB3] block mt-0.5">
                                   {u.recruiterProfile.title}
                                 </span>
                               )}
                             </div>
                           ) : u.role === 'APPLICANT' ? (
                             <div>
-                              <span className="font-semibold text-[#F1F5F9]">
+                              <span className="font-semibold text-[#202033]">
                                 {u.applicantProfile?.fullName || 'Candidate'}
                               </span>
                               {u.applicantProfile?.headline && (
-                                <span className="text-[11px] text-[#64748B] block truncate max-w-xs mt-0.5">
+                                <span className="text-[11px] text-[#9E9EB3] block truncate max-w-xs mt-0.5">
                                   {u.applicantProfile.headline}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-[#64748B] font-medium">System Administrator</span>
+                            <span className="text-[#9E9EB3] font-medium">System Administrator</span>
                           )}
                         </td>
 
@@ -570,7 +570,7 @@ export default function AdminUsersPage() {
                           </Badge>
                         </td>
 
-                        <td className="py-3.5 px-4 text-[#A1AEC2] text-[11px]">
+                        <td className="py-3.5 px-4 text-[#68677D] text-[11px]">
                           {formatDate(u.createdAt)}
                         </td>
 
@@ -578,7 +578,7 @@ export default function AdminUsersPage() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => handleOpenViewModal(u)}
-                              className="p-1.5 text-[#A1AEC2] hover:text-indigo-400 hover:bg-[#1C2940] rounded-lg transition-colors"
+                              className="p-1.5 text-[#68677D] hover:text-indigo-400 hover:bg-[#1C2940] rounded-lg transition-colors"
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
@@ -586,7 +586,7 @@ export default function AdminUsersPage() {
 
                             <button
                               onClick={() => handleOpenEditModal(u)}
-                              className="p-1.5 text-[#A1AEC2] hover:text-indigo-400 hover:bg-[#1C2940] rounded-lg transition-colors"
+                              className="p-1.5 text-[#68677D] hover:text-indigo-400 hover:bg-[#1C2940] rounded-lg transition-colors"
                               title="Edit User"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -616,7 +616,7 @@ export default function AdminUsersPage() {
                                   setSelectedUser(u);
                                   setIsDeleteModalOpen(true);
                                 }}
-                                className="p-1.5 text-[#A1AEC2] hover:text-rose-400 hover:bg-[#1C2940] rounded-lg transition-colors"
+                                className="p-1.5 text-[#68677D] hover:text-rose-400 hover:bg-[#1C2940] rounded-lg transition-colors"
                                 title="Delete or Deactivate User"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -634,7 +634,7 @@ export default function AdminUsersPage() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-[#2B3950] text-xs text-[#A1AEC2]">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-[#E4E3EF]/80 text-xs text-[#68677D]">
               <div>
                 Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} accounts
               </div>
@@ -647,7 +647,7 @@ export default function AdminUsersPage() {
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" /> Previous
                 </Button>
-                <span className="px-3 font-semibold text-[#F1F5F9]">
+                <span className="px-3 font-semibold text-[#202033]">
                   {page} / {totalPages}
                 </span>
                 <Button
@@ -678,7 +678,7 @@ export default function AdminUsersPage() {
           >
             <form onSubmit={handleSubmitAdd} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                   Email Address *
                 </label>
                 <input
@@ -687,12 +687,12 @@ export default function AdminUsersPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="user@enterprise.com"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                   Initial Password *
                 </label>
                 <input
@@ -702,13 +702,13 @@ export default function AdminUsersPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Minimum 6 characters"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Account Role
                   </label>
                   {isCompanyUser ? (
@@ -716,7 +716,7 @@ export default function AdminUsersPage() {
                       type="text"
                       disabled
                       value="Recruiter"
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                      className="skeuo-input w-full px-3.5 py-2.5 text-xs opacity-60 cursor-not-allowed"
                     />
                   ) : (
                     <select
@@ -730,34 +730,34 @@ export default function AdminUsersPage() {
                           companyName: '',
                         });
                       }}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                      className="skeuo-input w-full px-3.5 py-2.5 text-xs font-semibold"
                     >
-                      <option value="APPLICANT">Candidate / Applicant</option>
-                      <option value="RECRUITER">Company Recruiter</option>
-                      <option value="COMPANY">Company Account (Admin)</option>
-                      <option value="SUPER_ADMIN">Super Administrator</option>
+                      <option value="APPLICANT" className="bg-white text-[#202033]">Candidate / Applicant</option>
+                      <option value="RECRUITER" className="bg-white text-[#202033]">Company Recruiter</option>
+                      <option value="COMPANY" className="bg-white text-[#202033]">Company Account (Admin)</option>
+                      <option value="SUPER_ADMIN" className="bg-white text-[#202033]">Super Administrator</option>
                     </select>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Account Status
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs font-semibold"
                   >
-                    <option value="ACTIVE">Active</option>
-                    <option value="SUSPENDED">Suspended</option>
+                    <option value="ACTIVE" className="bg-white text-[#202033]">Active</option>
+                    <option value="SUSPENDED" className="bg-white text-[#202033]">Suspended</option>
                   </select>
                 </div>
               </div>
 
               {formData.role === 'APPLICANT' && (
                 <div>
-                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Full Name *
                   </label>
                   <input
@@ -766,7 +766,7 @@ export default function AdminUsersPage() {
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     placeholder="Candidate Name"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
               )}
@@ -776,7 +776,7 @@ export default function AdminUsersPage() {
                 <div className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-[#A1AEC2]">
+                      <label className="block text-xs font-semibold text-[#68677D]">
                         Associated Organization *
                       </label>
                       {isSuperAdmin && (
@@ -795,38 +795,38 @@ export default function AdminUsersPage() {
                         type="text"
                         disabled
                         value={currentUser?.company?.name || 'Your Organization'}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#E4E3EF] bg-[#151F32] text-[#68677D] cursor-not-allowed"
                       />
                     ) : (
                       <div className="relative">
                         <button
                           type="button"
                           onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                          className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                          className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs rounded-xl border border-[#E4E3EF] bg-white text-[#202033] text-[#202033] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                         >
-                          <span className={formData.companyId ? 'text-[#F1F5F9]' : 'text-[#64748B]'}>
+                          <span className={formData.companyId ? 'text-[#202033]' : 'text-[#9E9EB3]'}>
                             {formData.companyName || 'Select an organization...'}
                           </span>
-                          <ChevronsUpDown className="w-4 h-4 text-[#64748B]" />
+                          <ChevronsUpDown className="w-4 h-4 text-[#9E9EB3]" />
                         </button>
 
                         {isCompanyDropdownOpen && (
-                          <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1C2940] border border-[#2B3950] rounded-xl shadow-dropdown overflow-hidden max-h-56 flex flex-col">
-                            <div className="p-2 border-b border-[#2B3950]">
+                          <div className="absolute z-20 left-0 right-0 mt-1 bg-[#1C2940] border border-[#E4E3EF] rounded-xl shadow-dropdown overflow-hidden max-h-56 flex flex-col">
+                            <div className="p-2 border-b border-[#E4E3EF]">
                               <input
                                 type="text"
                                 autoFocus
                                 value={companySearchQuery}
                                 onChange={(e) => setCompanySearchQuery(e.target.value)}
                                 placeholder="Search companies..."
-                                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:border-indigo-500"
+                                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[#E4E3EF] bg-white text-[#202033] text-[#202033] focus:outline-none focus:border-indigo-500"
                               />
                             </div>
-                            <div className="overflow-y-auto divide-y divide-[#2B3950]/50">
+                            <div className="overflow-y-auto divide-y divide-[#E4E3EF]">
                               {loadingCompanies ? (
-                                <div className="p-3 text-center text-xs text-[#64748B]">Loading companies...</div>
+                                <div className="p-3 text-center text-xs text-[#68677D]">Loading companies...</div>
                               ) : filteredCompanies.length === 0 ? (
-                                <div className="p-3 text-center text-xs text-[#64748B]">
+                                <div className="p-3 text-center text-xs text-[#68677D]">
                                   No companies found.{' '}
                                   <button
                                     type="button"
@@ -852,7 +852,7 @@ export default function AdminUsersPage() {
                                       });
                                       setIsCompanyDropdownOpen(false);
                                     }}
-                                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-left text-[#F1F5F9] hover:bg-[#1E2D47] transition-colors"
+                                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-left text-[#202033] hover:bg-[#1E2D47] transition-colors"
                                   >
                                     <span className="font-medium">{c.name}</span>
                                     {formData.companyId === c.id && (
@@ -870,7 +870,7 @@ export default function AdminUsersPage() {
 
                   {formData.role === 'RECRUITER' && (
                     <div>
-                      <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Recruiter Title
                       </label>
                       <input
@@ -878,14 +878,14 @@ export default function AdminUsersPage() {
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                         placeholder="e.g. Lead Technical Recruiter"
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#E4E3EF] bg-white text-[#202033] text-[#202033] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
                       />
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E4E3EF]">
                 <Button
                   type="button"
                   variant="outline"
@@ -919,7 +919,7 @@ export default function AdminUsersPage() {
           >
             <form onSubmit={handleSubmitEdit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                   Email Address *
                 </label>
                 <input
@@ -927,12 +927,12 @@ export default function AdminUsersPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                   Reset Password (leave empty to keep current)
                 </label>
                 <input
@@ -941,13 +941,13 @@ export default function AdminUsersPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Account Role
                   </label>
                   {isCompanyUser ? (
@@ -955,47 +955,47 @@ export default function AdminUsersPage() {
                       type="text"
                       disabled
                       value={formData.role}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                      className="skeuo-input w-full px-3.5 py-2.5 text-xs opacity-60 cursor-not-allowed"
                     />
                   ) : (
                     <select
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                      className="skeuo-input w-full px-3.5 py-2.5 text-xs font-semibold"
                     >
-                      <option value="APPLICANT">Candidate / Applicant</option>
-                      <option value="RECRUITER">Company Recruiter</option>
-                      <option value="COMPANY">Company Account (Admin)</option>
-                      <option value="SUPER_ADMIN">Super Administrator</option>
+                      <option value="APPLICANT" className="bg-white text-[#202033]">Candidate / Applicant</option>
+                      <option value="RECRUITER" className="bg-white text-[#202033]">Company Recruiter</option>
+                      <option value="COMPANY" className="bg-white text-[#202033]">Company Account (Admin)</option>
+                      <option value="SUPER_ADMIN" className="bg-white text-[#202033]">Super Administrator</option>
                     </select>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Account Status
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs font-semibold"
                   >
-                    <option value="ACTIVE">Active</option>
-                    <option value="SUSPENDED">Suspended</option>
+                    <option value="ACTIVE" className="bg-white text-[#202033]">Active</option>
+                    <option value="SUSPENDED" className="bg-white text-[#202033]">Suspended</option>
                   </select>
                 </div>
               </div>
 
               {formData.role === 'APPLICANT' && (
                 <div>
-                  <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                     Full Name
                   </label>
                   <input
                     type="text"
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                    className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
               )}
@@ -1003,7 +1003,7 @@ export default function AdminUsersPage() {
               {(formData.role === 'RECRUITER' || formData.role === 'COMPANY') && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                    <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                       Associated Organization
                     </label>
                     {isCompanyUser ? (
@@ -1011,7 +1011,7 @@ export default function AdminUsersPage() {
                         type="text"
                         disabled
                         value={formData.companyName || currentUser?.company?.name || 'Your Organization'}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#151F32] text-[#A1AEC2] cursor-not-allowed"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#E4E3EF] bg-[#151F32] text-[#68677D] cursor-not-allowed"
                       />
                     ) : (
                       <select
@@ -1025,7 +1025,7 @@ export default function AdminUsersPage() {
                             companyName: match?.name || '',
                           });
                         }}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#E4E3EF] bg-white text-[#202033] text-[#202033] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
                       >
                         <option value="">Choose an organization...</option>
                         {companies.map((c) => (
@@ -1039,21 +1039,21 @@ export default function AdminUsersPage() {
 
                   {formData.role === 'RECRUITER' && (
                     <div>
-                      <label className="block text-xs font-semibold text-[#A1AEC2] mb-1.5">
+                      <label className="block text-xs font-semibold text-[#68677D] mb-1.5">
                         Title
                       </label>
                       <input
                         type="text"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#E4E3EF] bg-white text-[#202033] text-[#202033] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
                       />
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E4E3EF]">
                 <Button
                   type="button"
                   variant="outline"
@@ -1092,19 +1092,19 @@ export default function AdminUsersPage() {
               </div>
             ) : viewUserDetails ? (
               <div className="space-y-4 text-xs">
-                <div className="p-4 bg-[#101726] rounded-2xl border border-[#2B3950] space-y-2">
+                <div className="p-4 bg-white text-[#202033] rounded-2xl border border-[#E4E3EF] space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-[#F1F5F9]">
+                    <span className="font-bold text-sm text-[#202033]">
                       {viewUserDetails.email}
                     </span>
                     <Badge variant={viewUserDetails.status === 'ACTIVE' ? 'success' : 'danger'}>
                       {viewUserDetails.status}
                     </Badge>
                   </div>
-                  <div className="text-[#64748B] font-mono text-[11px]">
+                  <div className="text-[#9E9EB3] font-mono text-[11px]">
                     User ID: {viewUserDetails.id}
                   </div>
-                  <div className="text-[#A1AEC2]">
+                  <div className="text-[#68677D]">
                     Registered: {new Date(viewUserDetails.createdAt).toLocaleString()}
                   </div>
                 </div>
@@ -1115,7 +1115,7 @@ export default function AdminUsersPage() {
                       <Building className="w-4 h-4 text-indigo-400" />
                       <span>Company Account Ownership</span>
                     </div>
-                    <div className="text-[#F1F5F9]">
+                    <div className="text-[#202033]">
                       Organization: <strong>{viewUserDetails.company.name}</strong>
                     </div>
                   </div>
@@ -1127,11 +1127,11 @@ export default function AdminUsersPage() {
                       <Building2 className="w-4 h-4 text-indigo-400" />
                       <span>Recruiter Enterprise Affiliation</span>
                     </div>
-                    <div className="text-[#F1F5F9]">
+                    <div className="text-[#202033]">
                       Company: <strong>{viewUserDetails.recruiterProfile.company?.name || 'N/A'}</strong>
                     </div>
                     {viewUserDetails.recruiterProfile.title && (
-                      <div className="text-[#A1AEC2]">
+                      <div className="text-[#68677D]">
                         Title: {viewUserDetails.recruiterProfile.title}
                       </div>
                     )}
@@ -1139,20 +1139,20 @@ export default function AdminUsersPage() {
                 )}
 
                 {viewUserDetails.applicantProfile && (
-                  <div className="p-4 bg-[#101726] rounded-2xl border border-[#2B3950] space-y-2">
-                    <div className="font-bold text-xs text-[#F1F5F9]">
+                  <div className="p-4 bg-white text-[#202033] rounded-2xl border border-[#E4E3EF] space-y-2">
+                    <div className="font-bold text-xs text-[#202033]">
                       Candidate Profile Information
                     </div>
-                    <div className="text-[#A1AEC2]">
-                      Full Name: <strong className="text-[#F1F5F9]">{viewUserDetails.applicantProfile.fullName}</strong>
+                    <div className="text-[#68677D]">
+                      Full Name: <strong className="text-[#202033]">{viewUserDetails.applicantProfile.fullName}</strong>
                     </div>
                     {viewUserDetails.applicantProfile.headline && (
-                      <div className="text-[#64748B]">
+                      <div className="text-[#9E9EB3]">
                         Headline: {viewUserDetails.applicantProfile.headline}
                       </div>
                     )}
                     {viewUserDetails.applicantProfile.applications && (
-                      <div className="text-[#64748B] text-[11px] pt-1 border-t border-[#2B3950]">
+                      <div className="text-[#9E9EB3] text-[11px] pt-1 border-t border-[#E4E3EF]">
                         Total Job Submissions: {viewUserDetails.applicantProfile.applications.length}
                       </div>
                     )}
@@ -1236,7 +1236,7 @@ export default function AdminUsersPage() {
           >
             <form onSubmit={handleCreateCompanyInline} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block font-semibold text-[#68677D] mb-1.5">
                   Organization Name *
                 </label>
                 <input
@@ -1245,12 +1245,12 @@ export default function AdminUsersPage() {
                   value={newCompanyData.name}
                   onChange={(e) => setNewCompanyData({ ...newCompanyData, name: e.target.value })}
                   placeholder="e.g. Apex Cybernetics"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block font-semibold text-[#68677D] mb-1.5">
                   Industry
                 </label>
                 <input
@@ -1258,12 +1258,12 @@ export default function AdminUsersPage() {
                   value={newCompanyData.industry}
                   onChange={(e) => setNewCompanyData({ ...newCompanyData, industry: e.target.value })}
                   placeholder="e.g. Enterprise Cloud Computing"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-[#A1AEC2] mb-1.5">
+                <label className="block font-semibold text-[#68677D] mb-1.5">
                   HQ Location
                 </label>
                 <input
@@ -1271,11 +1271,11 @@ export default function AdminUsersPage() {
                   value={newCompanyData.location}
                   onChange={(e) => setNewCompanyData({ ...newCompanyData, location: e.target.value })}
                   placeholder="e.g. San Francisco, CA"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-[#2B3950] bg-[#101726] text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500"
+                  className="skeuo-input w-full px-3.5 py-2.5 text-xs"
                 />
               </div>
 
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#2B3950]">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E4E3EF]">
                 <Button
                   type="button"
                   variant="outline"

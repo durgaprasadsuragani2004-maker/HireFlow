@@ -41,7 +41,28 @@ export class AuthService {
       let recruiterId: string | undefined;
       let applicantId: string | undefined;
 
-      if (data.role === ROLES.RECRUITER) {
+      if (data.role === ROLES.COMPANY) {
+        const companyName = (data.companyName || `${data.email.split('@')[0]} Org`).trim();
+        let company = await tx.company.findFirst({
+          where: { name: companyName },
+        });
+
+        if (!company) {
+          company = await tx.company.create({
+            data: {
+              name: companyName,
+              description: `${companyName} on HireFlow ATS`,
+              contactEmail: data.email,
+            },
+          });
+        }
+        companyId = company.id;
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: { companyId: company.id },
+        });
+      } else if (data.role === ROLES.RECRUITER) {
         // Find or create company
         let company = await tx.company.findUnique({
           where: { name: data.companyName! },
@@ -142,15 +163,32 @@ export class AuthService {
       throw new AppError('Invalid email or password', 401);
     }
 
-    if (user.status === USER_STATUS.SUSPENDED) {
-      throw new AppError('Your account has been suspended. Please contact administrator.', 403);
+    if (user.status !== USER_STATUS.ACTIVE) {
+      throw new AppError('Your account has been suspended or deactivated. Please contact administrator.', 403);
+    }
+
+    let resolvedCompanyId = user.companyId || user.recruiterProfile?.companyId || user.company?.id || null;
+    let resolvedCompany = user.company || user.recruiterProfile?.company || null;
+
+    if (!resolvedCompanyId && user.role === ROLES.COMPANY) {
+      const matchedCompany = await prisma.company.findFirst({
+        where: { contactEmail: user.email },
+      });
+      if (matchedCompany) {
+        resolvedCompanyId = matchedCompany.id;
+        resolvedCompany = matchedCompany;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { companyId: matchedCompany.id },
+        }).catch(() => {});
+      }
     }
 
     const tokenPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
-      companyId: user.companyId || user.recruiterProfile?.companyId || null,
+      companyId: resolvedCompanyId,
       recruiterId: user.recruiterProfile?.id,
       applicantId: user.applicantProfile?.id,
     };
@@ -172,13 +210,13 @@ export class AuthService {
         email: user.email,
         role: user.role,
         status: user.status,
-        companyId: user.companyId || user.recruiterProfile?.companyId || null,
-        company: user.company || user.recruiterProfile?.company || null,
+        companyId: resolvedCompanyId,
+        company: resolvedCompany,
         recruiterProfile: user.recruiterProfile
           ? {
               id: user.recruiterProfile.id,
               companyId: user.recruiterProfile.companyId,
-              companyName: user.recruiterProfile.company.name,
+              companyName: user.recruiterProfile.company?.name || resolvedCompany?.name || 'My Organization',
               title: user.recruiterProfile.title,
             }
           : null,
@@ -264,6 +302,20 @@ export class AuthService {
 
     if (!user) {
       throw new AppError('User not found', 404);
+    }
+
+    if (!user.companyId && user.role === ROLES.COMPANY) {
+      const matchedCompany = await prisma.company.findFirst({
+        where: { contactEmail: user.email },
+      });
+      if (matchedCompany) {
+        user.companyId = matchedCompany.id;
+        user.company = matchedCompany;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { companyId: matchedCompany.id },
+        }).catch(() => {});
+      }
     }
 
     return user;
@@ -428,6 +480,8 @@ export class AuthService {
         email: true,
         role: true,
         status: true,
+        companyId: true,
+        company: true,
         createdAt: true,
         updatedAt: true,
         recruiterProfile: {
@@ -453,6 +507,20 @@ export class AuthService {
 
     if (!user) {
       throw new AppError('User not found', 404);
+    }
+
+    if (!user.companyId && user.role === ROLES.COMPANY) {
+      const matchedCompany = await prisma.company.findFirst({
+        where: { contactEmail: user.email },
+      });
+      if (matchedCompany) {
+        user.companyId = matchedCompany.id;
+        user.company = matchedCompany;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { companyId: matchedCompany.id },
+        }).catch(() => {});
+      }
     }
 
     return user;

@@ -151,7 +151,7 @@ describe('HireFlow — Persistence, Deadline Validation, Company Isolation, and 
       // Disconnect current Prisma client to close all active connections
       await prisma.$disconnect();
 
-      // Create a brand new, isolated Prisma client instance pointing to canonical SQLite URL
+      // Create a brand new, isolated Prisma client instance pointing to canonical Database URL
       const canonicalUrl = getCanonicalDatabaseUrl();
       const freshPrisma = new PrismaClient({
         datasources: { db: { url: canonicalUrl } },

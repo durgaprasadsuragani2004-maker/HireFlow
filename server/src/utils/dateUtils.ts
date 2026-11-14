@@ -148,7 +148,7 @@ export function validateJobDeadline(deadlineInput?: string | Date | null): {
 
   // If normalized deadline is in the past, reject
   if (normalized.getTime() < now.getTime()) {
-    return { valid: false, error: 'Application deadline cannot be in the past.' };
+    return { valid: false, error: 'Application deadline cannot be in the past. Please select today or a future date.' };
   }
 
   return { valid: true, normalized };
